@@ -1,0 +1,13 @@
+404 /api/v2/apts/aNmbc 25
+404 /api/v2/apts/aNmbc/areas 25
+404 /api/v2/apts/aNmbc/floor-plans 25
+404 /api/v2/apts/aNmbc/floorplans 25
+404 /api/v2/apts/aNmbc/area-infos 25
+404 /api/v2/apts/aNmbc/detail 25
+404 /api/v2/apts/aNmbc/plans 25
+404 /api/apt/aNmbc 25
+404 /api/v2/apts/aNmbc/pyeongs 25
+404 /api/v2/apts/aNmbc/area/9 25
+404 /api/v2/apts/aNmbc/areas/9 25
+page 200 823429
+{b'https://static.hogangnono.com/js/jquery-1.11.3.min.js', b'https://static.hogangnono.com/dist/261105.1/0c8d1eb496/web/desktop.js'}
