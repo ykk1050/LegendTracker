@@ -2,7 +2,7 @@
 
 호갱노노 공개 정보로 33평(전용 84㎡) 매매 매물과 실거래를 모아 꺾은선 그래프로 보여 주는 웹앱입니다.
 
-- 주소: https://ykk1050.github.io/lotte-legend-tracker/
+- 주소: https://ykk1050.github.io/LegendTracker/
 - 휴대폰: 위 주소를 열고 브라우저 메뉴에서 "홈 화면에 추가"를 누르면 앱처럼 쓸 수 있습니다.
 
 ## 어떻게 돌아가나
