@@ -125,6 +125,38 @@ def collect_asil(db):
     return len(rows)
 
 
+def collect_all_trades(db, now):
+    """단지 전체(모든 평형) 매매 실거래. 평형 번호를 차례로 훑어 거래 id 로 중복을 없앤다.
+    요청이 많아 6시간에 한 번만 한다."""
+    last = db.get("tradesAllAt")
+    if last and (now - datetime.fromisoformat(last)).total_seconds() < 6 * 3600:
+        return 0
+    store = db.setdefault("tradesAll", {})
+    added, misses = 0, 0
+    for area_no in range(0, 30):
+        try:
+            data = get(f"/api/v2/apts/{APT}/monthly-reports?tradeType=0&areaNo={area_no}")
+        except Exception:  # noqa: BLE001
+            data = None
+        months = (data or {}).get("shortTermReport") or []
+        if not months:
+            misses += 1
+            if misses >= 3:
+                break
+            continue
+        misses = 0
+        for month in months:
+            d = datetime.fromisoformat(month["date"].replace("Z", "+00:00")).astimezone(KST)
+            for t in month.get("trades", []):
+                key = str(t["id"])
+                if key in store or t.get("isAuction") or "day" not in t:
+                    continue
+                store[key] = f"{d.year:04d}-{d.month:02d}-{int(t['day']):02d}"
+                added += 1
+    db["tradesAllAt"] = now.isoformat(timespec="minutes")
+    return added
+
+
 def collect_listings(db, now_iso):
     # 1) 단지 전체 매물 요약을 페이지로 모두 받기
     summaries, offset = [], 0
@@ -214,6 +246,13 @@ def collect_listings(db, now_iso):
     return len(by_unit)
 
 
+def month_counts(dates):
+    out = {}
+    for d in dates:
+        out[d[:7]] = out.get(d[:7], 0) + 1
+    return dict(sorted(out.items()))
+
+
 def group_by_unit(db):
     """중개사별 매물을 집(호) 하나로 묶는다. 하나라도 떠 있으면 살아 있는 매물."""
     units = {}
@@ -266,6 +305,8 @@ def build_output(db, now_iso):
         "listings": group_by_unit(db),
         "snapshots": db["snapshots"],
         "asil": [[d, *v] for d, v in sorted(db.get("asil", {}).items())],
+        # 단지 전체 월별 매매 거래 건수 {YYYY-MM: 건수}
+        "allMonthly": month_counts(db.get("tradesAll", {}).values()),
     }
     os.makedirs(os.path.dirname(OUT_PATH), exist_ok=True)
     with open(OUT_PATH, "w", encoding="utf-8") as f:
@@ -288,6 +329,10 @@ def main():
         collect_asil(db)
     except Exception as e:  # noqa: BLE001  아실이 안 돼도 호갱노노 자료는 저장
         log(f"아실 매물 추이 실패: {e}")
+    try:
+        collect_all_trades(db, datetime.now(KST))
+    except Exception as e:  # noqa: BLE001
+        log(f"단지 전체 실거래 실패: {e}")
     save_db(db)
     build_output(db, now_iso)
     log(f"완료: 현재 33평 매매 매물 {active}건, 새 실거래 {added}건 (누적 {len(db['trades'])}건)")

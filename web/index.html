@@ -175,6 +175,14 @@ footer a { color: var(--text-secondary); }
     <div class="card"><h3>최근 실거래</h3><p class="note">선택한 기간 안의 거래</p><div class="tscroll" style="max-height:250px"><table id="tTrades"></table></div></div>
   </div>
 
+  <h2>매물과 거래의 관계</h2>
+  <p class="h2note"><b>매물 소진 기간</b> = 지금 매물 수 ÷ 최근 3개월 월평균 거래량. 새 매물이 없다고 칠 때 지금 매물이 다 팔리는 데 걸리는 개월 수로, 짧을수록 잘 팔리는 시장입니다. <b>월 회전율</b>은 그 반대로, 한 달에 매물 중 몇 %가 거래되는지입니다. 이번 달은 신고가 덜 들어와서 빼고 계산합니다. 지난달 거래도 신고 지연으로 적게 잡혀 소진 기간이 길게 나올 수 있습니다.</p>
+  <div class="kpis" id="relKpis"></div>
+  <div class="grid">
+    <div class="card"><h3>단지 전체 매물 소진 기간</h3><p class="note">월말 아실 매매 매물 수 ÷ 그달까지 3개월 평균 단지 거래량 · 모든 평형</p><div class="legend" id="lg-supAll"></div><div class="chartbox"><canvas id="c-supAll"></canvas></div></div>
+    <div class="card"><h3>33평 매물 소진 기간</h3><p class="note">날마다 33평 매물 수 ÷ 지난 3개월 평균 33평 거래량 · 수집 시작부터</p><div class="legend" id="lg-sup33"></div><div class="chartbox"><canvas id="c-sup33"></canvas></div></div>
+  </div>
+
   <footer>
     매 시간 호갱노노 공개 정보를 받아 쌓습니다(GitHub Actions에서 <code>collect.py</code> 실행). 화면은 10분마다 새 자료를 다시 읽습니다.<br>
     휴대폰에서는 브라우저 메뉴의 '홈 화면에 추가'로 앱처럼 쓸 수 있습니다.<br>
@@ -276,7 +284,7 @@ function drawLine(id, labels, sets, opts = {}) {
           backgroundColor: css("--surface-1"), titleColor: css("--text-primary"), bodyColor: css("--text-secondary"),
           borderColor: css("--border"), borderWidth: 1, padding: 10, boxPadding: 4, usePointStyle: true,
           callbacks: {
-            label: (c) => c.raw == null ? null : ` ${c.dataset.label}: ${opts.price ? won(c.raw) : c.raw + "건"}${opts.extra ? opts.extra(c) : ""}`,
+            label: (c) => c.raw == null ? null : ` ${c.dataset.label}: ${opts.price ? won(c.raw) : opts.unit ? c.raw.toFixed(1) + opts.unit : c.raw + "건"}${opts.extra ? opts.extra(c) : ""}`,
           },
         },
       },
@@ -284,7 +292,7 @@ function drawLine(id, labels, sets, opts = {}) {
         x: { grid: { display: false }, ticks: { color: css("--text-muted"), maxRotation: 0, autoSkip: true, autoSkipPadding: 12, maxTicksLimit: innerWidth < 600 ? 4 : 8 }, border: { color: css("--border") } },
         y: {
           beginAtZero: !opts.price, grid: { color: css("--grid") }, border: { display: false },
-          ticks: { color: css("--text-muted"), maxTicksLimit: 6, precision: 0, callback: (v) => opts.price ? won(v) : v },
+          ticks: { color: css("--text-muted"), maxTicksLimit: 6, precision: 0, callback: (v) => opts.price ? won(v) : opts.unit ? v + opts.unit : v },
         },
       },
     },
@@ -417,9 +425,80 @@ function render() {
   ], { price: true, extra: (c) => { const n = (c.datasetIndex === 0 ? priceBuckets : bandPriceBuckets[BANDS[c.datasetIndex - 1]])[c.dataIndex].length; return ` (${n}건)`; } });
   drawLine("tBandVol", labels, BANDS.map((b, i) => ({ label: b, data: bandVol[b], color: seriesColor(i) })), { allowZero: true });
 
+  renderRelation(startStr);
   renderKpis(trades, startStr);
   renderTradesTable(trades);
   renderListingTable(presentDirs);
+}
+
+// ---------- 매물과 거래의 관계 ----------
+const ymOf = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+function addMonths(ym, n) { const [y, m] = ym.split("-").map(Number); return ymOf(new Date(y, m - 1 + n, 1)); }
+// ym 을 포함해 앞 3개월 평균 거래량. 자료가 시작되기 전 달이 끼면 null
+function avg3(counts, ym, firstYm) {
+  const ms = [addMonths(ym, -2), addMonths(ym, -1), ym];
+  if (!firstYm || ms[0] < firstYm) return null;
+  return ms.reduce((s, m) => s + (counts[m] || 0), 0) / 3;
+}
+function renderRelation(startStr) {
+  const thisYm = ymOf(new Date());
+  const lastFull = addMonths(thisYm, -1);
+  const allCounts = D.allMonthly || {};
+  const allFirst = Object.keys(allCounts)[0];
+  const c33 = {};
+  for (const t of D.trades) if (!t.cancel) c33[t.date.slice(0, 7)] = (c33[t.date.slice(0, 7)] || 0) + 1;
+  const first33 = D.trades[0]?.date.slice(0, 7);
+
+  // 단지 전체: 월말 아실 매매 매물 수
+  const asilMonthEnd = {};
+  for (const [d, vm] of D.asil || []) if (vm != null) asilMonthEnd[d.slice(0, 7)] = vm;
+  const months = Object.keys(asilMonthEnd).filter((m) => m <= lastFull && m >= startStr.slice(0, 7)).sort();
+  const supAll = months.map((m) => { const a = avg3(allCounts, m, allFirst); return a ? asilMonthEnd[m] / a : null; });
+  const valid = supAll.filter((v) => v != null);
+  const histAvg = avg(valid);
+  drawLine("supAll", months.map((m) => m.replace("-", ".")), [
+    { label: "소진 기간", data: supAll, color: seriesColor(0) },
+    { label: "기간 평균", note: histAvg ? ` ${histAvg.toFixed(1)}개월` : "", data: months.map(() => histAvg), color: css("--neutral"), dash: true },
+  ], {
+    unit: "개월",
+    extra: (c) => {
+      if (c.datasetIndex !== 0) return "";
+      const m = months[c.dataIndex], a = avg3(allCounts, m, allFirst);
+      return ` (매물 ${asilMonthEnd[m]} ÷ 월 ${a.toFixed(1)}건, 회전율 ${(a / asilMonthEnd[m] * 100).toFixed(1)}%)`;
+    },
+    emptyText: "이 기간에는 계산할 자료가 없습니다 (단지 거래 자료는 2023.12부터)",
+  });
+
+  // 33평: 날마다 마지막 스냅샷
+  const daySnap = {};
+  for (const s of D.snapshots) daySnap[s.t.slice(0, 10)] = s;
+  const days = Object.keys(daySnap).sort();
+  const sup33 = days.map((d) => { const a = avg3(c33, addMonths(d.slice(0, 7), -1), first33); return a ? daySnap[d].count / a : null; });
+  drawLine("sup33", days.map((d) => `${+d.slice(5, 7)}/${+d.slice(8, 10)}`), [{ label: "33평 소진 기간", data: sup33, color: seriesColor(0) }], {
+    unit: "개월",
+    extra: (c) => { const d = days[c.dataIndex], a = avg3(c33, addMonths(d.slice(0, 7), -1), first33); return ` (매물 ${daySnap[d].count}채 ÷ 월 ${a.toFixed(1)}건)`; },
+  });
+
+  // 요약 숫자
+  const live33 = D.listings.filter((l) => !l.goneAt).length;
+  const a33 = avg3(c33, lastFull, first33);
+  const asilNow = (D.asil || []).slice(-1)[0]?.[1];
+  const aAll = avg3(allCounts, lastFull, allFirst);
+  const supNowAll = asilNow && aAll ? asilNow / aAll : null;
+  const fmt = (v, u) => v == null || !isFinite(v) ? "–" : v.toFixed(1) + u;
+  let judge = "";
+  if (supNowAll && histAvg) {
+    const r = supNowAll / histAvg;
+    judge = r > 1.15 ? "평소보다 매물이 쌓이는 중" : r < 0.85 ? "평소보다 빨리 팔리는 중" : "평소 수준";
+  }
+  const tiles = [
+    ["33평 매물 소진 기간", fmt(live33 / a33, "개월"), `매물 ${live33}채 ÷ 월 ${a33 == null ? "–" : a33.toFixed(1)}건`],
+    ["33평 월 회전율", a33 ? fmt(a33 / live33 * 100, "%") : "–", "한 달에 매물 중 거래되는 비율"],
+    ["단지 전체 소진 기간", fmt(supNowAll, "개월"), `매물 ${asilNow ?? "–"}건 ÷ 월 ${aAll == null ? "–" : aAll.toFixed(1)}건`],
+    ["단지 전체 월 회전율", aAll && asilNow ? fmt(aAll / asilNow * 100, "%") : "–", "모든 평형 합계"],
+    ["단지 흐름", judge || "–", histAvg ? `선택 기간 평균 ${histAvg.toFixed(1)}개월 대비` : ""],
+  ];
+  document.getElementById("relKpis").innerHTML = tiles.map(([k, v, n]) => `<div class="kpi"><div class="k">${k}</div><div class="v">${v}</div><div class="n">${n}</div></div>`).join("");
 }
 
 function renderKpis(trades, startStr) {
