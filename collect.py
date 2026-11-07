@@ -14,7 +14,9 @@ import urllib.request
 from datetime import datetime, timezone, timedelta
 
 APT = "aNmbc"          # 호갱노노 단지 코드 (대연롯데캐슬레전드)
-AREA_NO = 9            # 호갱노노 33평 면적 번호
+AREA_NO = 9            # 호갱노노 33평 면적 번호 (링크용)
+# 호갱노노는 33평 실거래를 두 묶음으로 나눠 둔다: 9 = 110C, 6 = 113A·112D·113B (평면이 달라 따로 집계)
+TRADE_AREAS = {9: "110C", 6: "113A·112D·113B"}
 PRIVATE_MIN, PRIVATE_MAX = 84.0, 86.0   # 33평 = 전용 84㎡대
 BASE = "https://hogangnono.com"
 HEADERS = {
@@ -86,22 +88,30 @@ def floor_band(floor_txt):
 
 
 def collect_trades(db):
-    data = get(f"/api/v2/apts/{APT}/monthly-reports?tradeType=0&areaNo={AREA_NO}")
     added = 0
-    for month in data.get("shortTermReport", []):
-        # date 는 해당 월 1일 0시(KST)를 UTC 로 적은 값
-        d = datetime.fromisoformat(month["date"].replace("Z", "+00:00")).astimezone(KST)
-        for t in month.get("trades", []):
-            key = str(t["id"])
-            if key in db["trades"] or t.get("isAuction") or "day" not in t:
-                continue  # 경매 낙찰 건은 일반 거래가 아니므로 뺀다
-            db["trades"][key] = {
-                "date": f"{d.year:04d}-{d.month:02d}-{int(t['day']):02d}",
-                "price": t["price"],           # 만원
-                "floor": t.get("floor"),
-                "cancel": bool(t.get("isCanceled") or t.get("canceled")),
-            }
-            added += 1
+    for rec in db["trades"].values():  # 예전 기록은 모두 110C(면적 번호 9)에서 받은 것
+        rec.setdefault("grp", TRADE_AREAS[9])
+    for area_no, grp in TRADE_AREAS.items():
+        data = get(f"/api/v2/apts/{APT}/monthly-reports?tradeType=0&areaNo={area_no}")
+        for month in data.get("shortTermReport", []):
+            # date 는 해당 월 1일 0시(KST)를 UTC 로 적은 값
+            d = datetime.fromisoformat(month["date"].replace("Z", "+00:00")).astimezone(KST)
+            for t in month.get("trades", []):
+                key = str(t["id"])
+                if t.get("isAuction") or "day" not in t:
+                    continue  # 경매 낙찰 건은 일반 거래가 아니므로 뺀다
+                cancel = bool(t.get("isCanceled") or t.get("canceled"))
+                if key in db["trades"]:
+                    db["trades"][key]["cancel"] = db["trades"][key]["cancel"] or cancel  # 나중에 취소된 거래 반영
+                    continue
+                db["trades"][key] = {
+                    "date": f"{d.year:04d}-{d.month:02d}-{int(t['day']):02d}",
+                    "price": t["price"],           # 만원
+                    "floor": t.get("floor"),
+                    "cancel": cancel,
+                    "grp": grp,
+                }
+                added += 1
     return added
 
 

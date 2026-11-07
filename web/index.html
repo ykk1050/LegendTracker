@@ -208,7 +208,8 @@ footer a { color: var(--text-secondary); }
   </div>
 
   <h2>실거래</h2>
-  <p class="h2note">국토교통부 신고 기준(호갱노노 제공). 계약 후 신고까지 최대 30일이 걸려 최근 한 달은 적게 보일 수 있습니다. 실거래 자료에는 동·호가 공개되지 않아 향별 거래량은 볼 수 없습니다.</p>
+  <p class="h2note">국토교통부 신고 기준(호갱노노 제공). 계약 후 신고까지 최대 30일이 걸려 최근 한 달은 적게 보일 수 있습니다. 실거래 자료에는 동·호가 공개되지 않아 동별·향별로는 볼 수 없고, 타입은 호갱노노가 나눠 둔 대로 110C와 나머지(113A·112D·113B) 두 묶음으로만 나뉩니다.</p>
+  <div class="tools"><div><span class="flabel">타입</span><div class="seg" id="tGrpSeg"><button data-v="all" class="on">33평 전체</button><button data-v="110C">110C</button><button data-v="113A·112D·113B">113A·112D·113B</button></div></div></div>
   <div class="grid">
     <div class="card"><h3>거래량</h3><p class="note">기간마다 계약된 건수</p><div class="legend" id="lg-vol"></div><div class="chartbox"><canvas id="c-vol"></canvas></div></div>
     <div class="card"><h3>평균 실거래가</h3><p class="note">전체 평균과 층별 평균</p><div class="legend" id="lg-tPrice"></div><div class="chartbox"><canvas id="c-tPrice"></canvas></div></div>
@@ -236,7 +237,7 @@ footer a { color: var(--text-secondary); }
 const DIRS = { s: "남향", se: "남동향", sw: "남서향", e: "동향", w: "서향", n: "북향", ne: "북동향", nw: "북서향" };
 const DIR_ORDER = ["s", "se", "sw", "e", "w", "n", "ne", "nw"];
 const BANDS = ["저층", "중층", "고층"];
-const state = { range: 365, grain: "month", tDir: "all", tBand: "all", dong: "all", tShow: "live", sort: { key: "price", asc: true }, dongSort: { key: "dong", asc: true } };
+const state = { range: 365, grain: "month", tDir: "all", tBand: "all", dong: "all", tShow: "live", tGrp: "all", sort: { key: "price", asc: true }, dongSort: { key: "dong", asc: true } };
 const dongNum = (d) => parseInt(d) || 0;
 // 선택한 동의 매물만 (동 '전체'면 모두)
 const LS = () => state.dong === "all" ? D.listings : D.listings.filter((l) => l.dong === state.dong);
@@ -453,7 +454,7 @@ function render() {
   drawLine("bandCount", lLabels, BANDS.map((b, i) => ({ label: b, note: cnt(bandCount[b]), data: bandCount[b], color: seriesColor(i) })));
 
   // 실거래
-  const trades = D.trades.filter((t) => t.date >= startStr && !t.cancel);
+  const trades = D.trades.filter((t) => t.date >= startStr && !t.cancel && (state.tGrp === "all" || (t.grp || "110C") === state.tGrp));
   const vol = new Array(keys.length).fill(0);
   const bandVol = Object.fromEntries(BANDS.map((b) => [b, new Array(keys.length).fill(0)]));
   const priceBuckets = keys.map(() => []);
@@ -572,9 +573,9 @@ function renderTradesTable(trades) {
   const rows = trades.slice().reverse();
   document.getElementById("tradeCount").innerHTML = `총 <b>${rows.length}</b>건`;
   document.getElementById("tTrades").innerHTML =
-    `<thead><tr><th class="no">#</th><th>계약일</th><th class="num">층</th><th>구분</th><th class="num">가격</th></tr></thead><tbody>` +
-    (rows.length ? rows.map((t, i) => `<tr><td class="no">${i + 1}</td><td>${t.date}</td><td class="num">${t.floor ?? "–"}</td><td>${t.band}</td><td class="num">${won(t.price)}</td></tr>`).join("")
-      : `<tr><td colspan="5" style="color:var(--text-muted)">이 기간에는 거래가 없습니다</td></tr>`) + "</tbody>";
+    `<thead><tr><th class="no">#</th><th>계약일</th><th>타입</th><th class="num">층</th><th>구분</th><th class="num">가격</th></tr></thead><tbody>` +
+    (rows.length ? rows.map((t, i) => `<tr><td class="no">${i + 1}</td><td>${t.date}</td><td>${(t.grp || "110C") === "110C" ? "110C" : "113A·B·112D"}</td><td class="num">${t.floor ?? "–"}</td><td>${t.band}</td><td class="num">${won(t.price)}</td></tr>`).join("")
+      : `<tr><td colspan="6" style="color:var(--text-muted)">이 기간에는 거래가 없습니다</td></tr>`) + "</tbody>";
 }
 
 // ---------- 타입별 평면도 ----------
@@ -750,6 +751,7 @@ function bindSeg(id, key, num) {
 }
 bindSeg("rangeSeg", "range", true);
 bindSeg("grainSeg", "grain", false);
+bindSeg("tGrpSeg", "tGrp", false);
 try {
   const saved = JSON.parse(localStorage.getItem("legend-view") || "null");
   if (saved) {
