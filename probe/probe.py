@@ -1,10 +1,11 @@
-import urllib.request, os
-os.makedirs("out/plans2",exist_ok=True)
-U={"58":"","74":"258649/20260210163906_HOAR6NZkoApKJDeikd","83A":"106771/20210508043408_Q1D6vQgAWqU7CANtxe","84C":"106773/20210508043410_RMIhAfRUU9yFLnIW36","84B":"106772/20210508043409_AtfHSszRojL8wETE7u","85D":"106774/20210508043411_tEVfDiwtyTq2FNviYH","130B":"106779/20210508043414_7YZUwk6ZiQxUMuqT1h","153A":"106780/20210508043415_jbdzzgxUcbyT2y3SkY","154B":"106781/20210508043416_QXwcsO0GpOhBA5Jz2l"}
-for t,p in U.items():
-    if not p: continue
-    u="https://image.hogangnono.com/image/original/apt/aNmbc/"+p+"?s=720x180&t=outside&q=100"
+import urllib.request, urllib.parse, json
+q='''[out:json][timeout:60];
+(way["building"](around:450,35.1363417,129.0811443);
+ relation["building"](around:450,35.1363417,129.0811443););
+out geom tags;'''
+for ep in ["https://overpass-api.de/api/interpreter","https://overpass.kumi.systems/api/interpreter"]:
     try:
-        with urllib.request.urlopen(urllib.request.Request(u,headers={"User-Agent":"Mozilla/5.0"}),timeout=30) as r:
-            open(f"out/plans2/{t}.jpg","wb").write(r.read()); print(t,"ok")
-    except Exception as e: print(t,"ERR",e)
+        req=urllib.request.Request(ep,data=urllib.parse.urlencode({"data":q}).encode(),headers={"User-Agent":"LegendTracker/1.0 (personal)"})
+        with urllib.request.urlopen(req,timeout=90) as r: d=json.load(r)
+        open("out/osm.json","w").write(json.dumps(d,ensure_ascii=False)); print(ep,"ok",len(d["elements"])); break
+    except Exception as e: print(ep,"ERR",e)
