@@ -102,6 +102,12 @@ h2 { font-size: 18px; margin: 30px 0 4px; }
 .legend span { display: inline-flex; align-items: center; gap: 6px; }
 .legend i { width: 14px; height: 3px; border-radius: 2px; display: inline-block; }
 .legend i.dash { background: repeating-linear-gradient(90deg, var(--neutral) 0 4px, transparent 4px 7px) !important; }
+.tip { min-height: 24px; margin-top: 6px; padding: 6px 10px; border-radius: 8px; font-size: 13px; color: var(--text-muted); display: flex; flex-wrap: wrap; gap: 2px 12px; align-items: center; }
+.tip.on { background: var(--chip); color: var(--text-secondary); }
+.tip b { color: var(--text-primary); margin-right: 4px; }
+.tip span { display: inline-flex; align-items: center; gap: 5px; }
+.tip i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.tip button { margin-left: auto; border: 0; background: none; color: var(--accent); font: inherit; font-size: 12px; cursor: pointer; padding: 0 2px; }
 .empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; color: var(--text-muted); font-size: 13px; padding: 20px; pointer-events: none; }
 .tablecard { margin-top: 14px; }
 .tools { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; margin: 6px 0 10px; }
@@ -123,9 +129,22 @@ select.pick { font: inherit; font-size: 14px; padding: 4px 8px; border-radius: 6
 #tDong tbody tr:hover td { background: var(--chip); }
 #tDong tr.sel td { background: var(--chip); font-weight: 700; }
 button.pick { cursor: pointer; }
-.dongpanel { display: none; flex-basis: 100%; gap: 8px; align-items: flex-start; }
+.dongpanel { display: none; flex-basis: 100%; flex-direction: column; gap: 8px; }
 .dongpanel.on { display: flex; }
-.dongpanel .seg { flex: 1; }
+.dmap { background: var(--surface-1); border: 1px solid var(--border); border-radius: 10px; padding: 4px; max-height: 52vh; }
+.dmap svg { width: 100%; max-height: calc(52vh - 8px); display: block; }
+.dmap .d path { fill: var(--chip); stroke: var(--neutral); stroke-width: 1; }
+.dmap .d text { font-size: 11px; fill: var(--text-muted); text-anchor: middle; pointer-events: none; font-family: inherit; paint-order: stroke; stroke: var(--surface-1); stroke-width: 3px; stroke-linejoin: round; }
+.dmap .d.has { cursor: pointer; }
+.dmap .d.has path { fill: color-mix(in srgb, var(--accent) 22%, var(--surface-1)); stroke: var(--accent); }
+.dmap .d.has text { fill: var(--text-primary); font-weight: 700; }
+.dmap .d.has text.n { font-weight: 400; fill: var(--text-secondary); font-size: 10px; }
+.dmap .d.sel path { fill: var(--accent); }
+.dmap .d.sel text { fill: var(--accent); font-size: 12px; }
+.dmap .d.sel text.n { fill: var(--accent); font-weight: 700; }
+.dmap .d .hit { fill: transparent; stroke: none; }
+.dpbar { display: flex; gap: 8px; align-items: center; }
+.dpbar .hint { flex: 1; }
 .flabel .hint, .hint { font-size: 12px; color: var(--text-muted); }
 .dongnote { display: none; margin: -8px 0 16px; padding: 9px 12px; border-radius: 8px; background: var(--chip); font-size: 13px; color: var(--text-secondary); }
 .dongnote.on { display: block; }
@@ -174,7 +193,10 @@ footer a { color: var(--text-secondary); }
       </div>
     </div>
     <div><span class="flabel">동</span><button class="pick" id="dongBtn">전체 ▾</button></div>
-    <div class="dongpanel" id="dongPanel"><div class="seg" id="dongChips"></div><button class="pick" id="dongClose">닫기</button></div>
+    <div class="dongpanel" id="dongPanel">
+      <div class="dmap"><svg id="dongMap" viewBox="0 0 400 315"></svg></div>
+      <div class="dpbar"><span class="hint">동을 눌러 고르기·빼기 (여러 개) · 숫자는 지금 매물 · 회색은 33평이 없는 동 · 배치도 출처: © OpenStreetMap 기여자</span><button class="pick" id="dongAll">전체</button><button class="pick" id="dongClose">닫기</button></div>
+    </div>
   </div>
   <div class="dongnote" id="dongNote"></div>
 
@@ -250,6 +272,8 @@ const DIR_ORDER = ["s", "se", "sw", "e", "w", "n", "ne", "nw"];
 const BANDS = ["저층", "중층", "고층"];
 const state = { range: 365, grain: "month", tDir: [], tBand: [], dongs: [], types: [], tShow: "live", tGrp: "all", sort: { key: "price", asc: true }, dongSort: { key: "dong", asc: true } };
 const dongNum = (d) => parseInt(d) || 0;
+// 단지 배치 (OpenStreetMap 건물 모양을 북쪽이 위로 오게 옮긴 것)
+const DONG_MAP = {"101동":{"d":"M14.0,50.1L16.1,59.9L23.5,58.4L22.7,54.9L25.8,54.2L26.4,57.5L35.9,55.4L33.9,45.9Z","x":24.8,"y":54.5},"102동":{"d":"M50.4,36.1L50.9,45.9L62.2,45.9L62.0,42.0L65.8,41.2L66.8,43.5L76.1,41.5L74.0,31.5L64.8,34.8L60.7,35.8Z","x":63.4,"y":39.8},"103동":{"d":"M83.0,33.7L89.3,42.3L112.9,24.8L106.6,16.3Z","x":98.0,"y":29.3},"104동":{"d":"M128.3,18.2L125.4,27.6L142.8,32.8L156.7,41.4L164.4,28.8L151.6,20.9L148.2,26.5L141.0,22.0Z","x":144.8,"y":27.3},"105동":{"d":"M177.5,25.1L178.4,33.5L184.3,34.3L189.2,41.3L199.7,34.0L194.6,26.6L198.7,18.2L191.9,14.9L187.4,24.1Z","x":189.1,"y":28.0},"106동":{"d":"M230.8,22.5L225.2,34.0L238.6,40.5L242.6,32.3L256.6,32.3L256.6,22.9L238.7,22.8L235.9,14.0L228.8,16.3Z","x":239.3,"y":26.4},"107동":{"d":"M264.6,24.5L265.1,33.9L282.8,33.0L300.8,40.2L304.2,31.6L283.9,23.5Z","x":283.6,"y":31.1},"108동":{"d":"M319.1,119.6L338.0,108.8L333.2,100.4L321.8,106.9L309.9,86.0L302.4,90.3Z","x":320.7,"y":102.0},"109동":{"d":"M284.0,70.2L290.5,71.3L288.6,82.0L294.3,90.7L281.6,99.0L277.8,93.3L270.9,92.8L271.4,84.6L278.1,85.1L281.9,82.0Z","x":281.9,"y":85.1},"110동":{"d":"M225.2,92.3L235.7,96.9L240.5,85.8L234.7,83.3L238.7,74.1L235.1,68.7L228.4,73.2L230.2,80.8Z","x":233.5,"y":81.9},"111동":{"d":"M185.0,69.9L191.5,71.1L189.6,81.7L195.3,90.4L182.6,98.8L178.8,93.0L171.8,92.6L172.4,84.4L179.0,84.8L182.9,81.7Z","x":182.9,"y":84.8},"112동":{"d":"M132.4,85.2L131.6,94.0L143.3,95.1L149.8,100.1L159.1,88.3L149.0,80.4L144.3,86.3Z","x":144.2,"y":89.9},"113동":{"d":"M131.7,143.6L130.9,152.5L142.6,153.5L149.1,158.6L158.4,146.8L148.3,138.8L143.6,144.7Z","x":143.5,"y":148.4},"114동":{"d":"M180.9,127.6L187.4,128.8L185.5,139.5L191.2,148.1L178.5,156.5L174.7,150.8L167.7,150.3L168.3,142.1L174.9,142.5L178.8,139.5Z","x":178.8,"y":142.6},"115동":{"d":"M222.5,149.3L233.0,153.8L237.8,142.7L232.0,140.2L236.0,131.0L232.4,125.7L225.7,130.1L227.5,137.7Z","x":230.8,"y":138.8},"116동":{"d":"M279.3,125.9L285.8,127.0L283.9,137.7L289.6,146.4L276.9,154.7L273.1,149.0L266.1,148.5L266.7,140.3L273.3,140.8L277.2,137.7Z","x":277.2,"y":140.8},"117동":{"d":"M306.7,152.4L314.6,169.7L341.3,157.6L337.7,149.7L319.4,158.1L315.0,148.5Z","x":322.5,"y":156.0},"118동":{"d":"M288.7,187.9L295.1,189.1L293.2,199.8L298.9,208.4L286.2,216.8L282.4,211.0L271.4,209.7L272.4,201.6L282.7,202.8L286.5,199.8Z","x":285.8,"y":202.7},"119동":{"d":"M229.6,214.1L239.4,218.1L243.4,208.2L237.5,205.8L240.9,197.3L233.0,185.4L225.9,190.1L234.2,202.7Z","x":235.5,"y":202.7},"120동":{"d":"M188.4,190.5L194.8,191.6L192.9,202.3L198.6,211.0L185.9,219.4L182.1,213.6L175.2,213.1L175.7,204.9L182.4,205.4L186.2,202.3Z","x":186.2,"y":205.4},"121동":{"d":"M124.0,201.9L123.2,210.8L134.9,211.8L141.3,216.9L150.6,205.1L140.5,197.1L135.9,203.0Z","x":135.8,"y":206.7},"122동":{"d":"M242.9,272.1L250.1,268.1L240.3,250.7L233.2,254.8Z","x":241.6,"y":261.4},"123동":{"d":"M245.0,275.4L259.2,301.2L275.9,292.0L271.5,284.1L262.2,289.2L252.4,271.3Z","x":261.0,"y":285.5},"124동":{"d":"M278.4,287.5L295.9,294.1L299.4,284.9L312.9,269.4L306.1,263.4L293.8,277.5L291.5,283.4L281.4,279.6Z","x":294.9,"y":280.0},"125동":{"d":"M310.0,226.0L324.1,250.3L340.4,240.9L335.8,233.0L328.7,237.1L319.2,220.7Z","x":326.4,"y":234.7},"126동":{"d":"M386.0,215.1L380.9,231.2L381.5,243.4L361.6,244.4L360.9,232.3L371.9,231.7L378.0,212.5Z","x":374.4,"y":230.1},"127동":{"d":"M381.9,165.6L372.4,181.2L369.3,192.0L351.9,187.0L354.9,176.7L364.3,179.4L375.3,161.6Z","x":367.2,"y":177.6}};
 // 선택한 동의 매물만 (동 '전체'면 모두)
 // 여러 개 고르는 필터: 빈 배열 = 전체
 const dongOn = () => state.dongs.length > 0;
@@ -330,6 +354,17 @@ function drawLine(id, labels, sets, opts = {}) {
   const hasData = sets.some((s) => s.data.some((v) => v != null && v !== 0)) || (opts.allowZero && sets.some((s) => s.data.some((v) => v != null)));
   document.getElementById("lg-" + id).innerHTML = sets.length > 1 ? legendHtml(sets) : "";
   const pts = sets.reduce((n, s) => n + s.data.filter((v) => v != null).length, 0);
+  // 값 풀이는 그래프 위에 띄우지 않고 그래프 아래 줄에 적는다 (그래프를 가리지 않도록)
+  let tip = box.nextElementSibling;
+  if (!tip || !tip.classList.contains("tip")) { tip = document.createElement("div"); tip.className = "tip"; box.after(tip); }
+  const TIP_EMPTY = "그래프를 누르면 값이 여기 나옵니다";
+  tip.classList.remove("on"); tip.textContent = TIP_EMPTY;
+  const fmtVal = (c) => `${c.dataset.label}: ${opts.price ? won(c.raw) : opts.unit ? c.raw.toFixed(1) + opts.unit : c.raw + "건"}${opts.extra ? opts.extra(c) : ""}`;
+  tip.onclick = (e) => {
+    if (!e.target.closest("button")) return;
+    const ch = charts[id]; ch.setActiveElements([]); ch.tooltip.setActiveElements([], { x: 0, y: 0 }); ch.update("none");
+    tip.classList.remove("on"); tip.textContent = TIP_EMPTY;
+  };
   const config = {
     type: "line",
     data: {
@@ -347,10 +382,14 @@ function drawLine(id, labels, sets, opts = {}) {
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: css("--surface-1"), titleColor: css("--text-primary"), bodyColor: css("--text-secondary"),
-          borderColor: css("--border"), borderWidth: 1, padding: 10, boxPadding: 4, usePointStyle: true,
-          callbacks: {
-            label: (c) => c.raw == null ? null : ` ${c.dataset.label}: ${opts.price ? won(c.raw) : opts.unit ? c.raw.toFixed(1) + opts.unit : c.raw + "건"}${opts.extra ? opts.extra(c) : ""}`,
+          enabled: false,
+          external: ({ tooltip }) => {
+            if (tooltip.opacity === 0 || !tooltip.dataPoints?.length) return; // 마지막 값을 그대로 둔다
+            const rows = tooltip.dataPoints.filter((c) => c.raw != null);
+            if (!rows.length) return;
+            tip.classList.add("on");
+            tip.innerHTML = `<b>${tooltip.title.join(" ")}</b>` +
+              rows.map((c) => `<span><i style="background:${c.dataset.borderColor}"></i>${fmtVal(c)}</span>`).join("") + `<button>숨기기</button>`;
           },
         },
       },
@@ -784,13 +823,25 @@ function setDongs(arr) {
 }
 document.getElementById("dongBtn").addEventListener("click", () => document.getElementById("dongPanel").classList.toggle("on"));
 document.getElementById("dongClose").addEventListener("click", () => document.getElementById("dongPanel").classList.remove("on"));
+document.getElementById("dongAll").addEventListener("click", () => setDongs([]));
+document.getElementById("dongMap").addEventListener("click", (e) => {
+  const g = e.target.closest("g.has"); if (!g) return;
+  setDongs(toggle(state.dongs, g.dataset.dong));
+});
 document.getElementById("dongNote").addEventListener("click", (e) => { if (e.target.closest("button")) { state.types = []; setDongs([]); } });
 function syncDong() {
   const dongs = [...new Set(D.listings.map((l) => l.dong).filter(Boolean))].sort((a, b) => dongNum(a) - dongNum(b));
   state.dongs = state.dongs.filter((d) => dongs.includes(d));
   if (state.dongs.length === dongs.length) state.dongs = [];
   const live = (d) => D.listings.filter((l) => l.dong === d && !l.goneAt).length;
-  chipGroup("dongChips", dongs.map((d) => [d, `${d} <span class="hint">${live(d)}</span>`]), "dongs", () => setDongs(state.dongs));
+  // 단지 배치 지도: 33평이 있는 동만 누를 수 있다
+  document.getElementById("dongMap").innerHTML = Object.entries(DONG_MAP).map(([d, v]) => {
+    const has = dongs.includes(d), sel = state.dongs.includes(d), n = live(d);
+    return `<g class="d ${has ? "has" : ""} ${sel ? "sel" : ""}" data-dong="${d}"><path d="${v.d}"/>` +
+      (has ? `<circle class="hit" cx="${v.x}" cy="${v.y}" r="18"/>` : "") +
+      `<text x="${v.x}" y="${has ? v.y - 7 : v.y}" dominant-baseline="middle">${d.slice(0, 3)}</text>` +
+      (has ? `<text class="n" x="${v.x}" y="${v.y + 15}" dominant-baseline="middle">${n}채</text>` : "") + `</g>`;
+  }).join("");
   const one = dongOn() || typeOn();
   document.getElementById("dongBtn").textContent = (dongOn() ? (state.dongs.length > 2 ? `${state.dongs.length}개 동` : state.dongs.join(", ")) : "전체") + " ▾";
   document.getElementById("listingH2").textContent = one ? `매물 (호가) · ${pickLabel()}` : "매물 (호가)";
