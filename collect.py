@@ -318,7 +318,14 @@ def build_output(db, now_iso):
 def main():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     db = load_db()
-    now_iso = datetime.now(KST).isoformat(timespec="minutes")
+    now = datetime.now(KST)
+    now_iso = now.isoformat(timespec="minutes")
+    # 예약 실행은 GitHub 사정으로 자주 빠지므로 20분마다 깨우고, 직전 수집이 가까우면 건너뛴다.
+    min_gap = float(os.environ.get("MIN_GAP_MINUTES") or 0)
+    last = db["snapshots"][-1]["t"] if db.get("snapshots") else None
+    if min_gap and last and (now - datetime.fromisoformat(last)).total_seconds() < min_gap * 60:
+        print(f"직전 수집({last})이 {min_gap:.0f}분 안이라 건너뜀")
+        return
     try:
         added = collect_trades(db)
         active = collect_listings(db, now_iso)

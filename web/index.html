@@ -110,9 +110,19 @@ table { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-nu
 th, td { padding: 7px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
 th { position: sticky; top: 0; background: var(--surface-1); color: var(--text-secondary); font-weight: 500; cursor: pointer; user-select: none; }
 th.num, td.num { text-align: right; }
+tfoot td { position: sticky; bottom: 0; background: var(--surface-1); border-top: 1px solid var(--border); }
 tr.gone td { color: var(--text-muted); text-decoration: line-through; }
 .tag { display: inline-block; font-size: 12px; padding: 1px 7px; border-radius: 10px; background: var(--chip); color: var(--text-secondary); }
 .tag.new { background: var(--accent); color: #fff; }
+td.no, th.no { color: var(--text-muted); text-align: right; width: 1%; cursor: default; }
+.count { font-size: 13px; font-weight: 400; color: var(--text-muted); margin-left: 6px; }
+.count b { color: var(--text-primary); }
+select.pick { font: inherit; font-size: 14px; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary); }
+#listingCard { scroll-margin-top: 110px; }
+#tDong tbody tr { cursor: pointer; }
+#tDong tbody tr:hover td { background: var(--chip); }
+#tDong tr.sel td { background: var(--chip); font-weight: 700; }
+.bar { display: inline-block; height: 8px; border-radius: 4px; background: var(--accent); vertical-align: middle; margin-right: 8px; opacity: .75; }
 .chg-up { color: var(--up); } .chg-down { color: var(--down); }
 footer { margin-top: 36px; font-size: 12px; color: var(--text-muted); line-height: 1.7; }
 footer a { color: var(--text-secondary); }
@@ -157,8 +167,15 @@ footer a { color: var(--text-secondary); }
   </div>
 
   <div class="card tablecard">
-    <h3>지금 떠 있는 매물</h3>
+    <h3>동별 현황<span class="count" id="dongCount"></span></h3>
+    <p class="note">지금 떠 있는 매물 기준 · 증감·신규·내려감은 선택한 기간(수집 시작 이후) 기준 · 줄을 누르면 아래 매물 표가 그 동만 보여 줍니다</p>
+    <div class="tscroll"><table id="tDong"></table></div>
+  </div>
+
+  <div class="card tablecard" id="listingCard">
+    <h3 id="listingTitle">지금 떠 있는 매물</h3>
     <div class="tools">
+      <div><span class="flabel">동</span><select class="pick" id="tDongSel"></select></div>
       <div><span class="flabel">향</span><div class="seg" id="tDir"></div></div>
       <div><span class="flabel">층</span><div class="seg" id="tBand"></div></div>
       <div><span class="flabel">보기</span><div class="seg" id="tShow"><button data-v="live" class="on">떠 있는 것</button><button data-v="gone">내려간 것</button></div></div>
@@ -172,7 +189,7 @@ footer a { color: var(--text-secondary); }
     <div class="card"><h3>거래량</h3><p class="note">기간마다 계약된 건수</p><div class="legend" id="lg-vol"></div><div class="chartbox"><canvas id="c-vol"></canvas></div></div>
     <div class="card"><h3>평균 실거래가</h3><p class="note">전체 평균과 층별 평균</p><div class="legend" id="lg-tPrice"></div><div class="chartbox"><canvas id="c-tPrice"></canvas></div></div>
     <div class="card"><h3>층별 거래량</h3><p class="note">저층 1~10 · 중층 11~22 · 고층 23층 이상</p><div class="legend" id="lg-tBandVol"></div><div class="chartbox"><canvas id="c-tBandVol"></canvas></div></div>
-    <div class="card"><h3>최근 실거래</h3><p class="note">선택한 기간 안의 거래</p><div class="tscroll" style="max-height:250px"><table id="tTrades"></table></div></div>
+    <div class="card"><h3>최근 실거래<span class="count" id="tradeCount"></span></h3><p class="note">선택한 기간 안의 거래 · 최근 것부터</p><div class="tscroll" style="max-height:250px"><table id="tTrades"></table></div></div>
   </div>
 
   <h2>매물과 거래의 관계</h2>
@@ -184,7 +201,7 @@ footer a { color: var(--text-secondary); }
   </div>
 
   <footer>
-    매 시간 호갱노노 공개 정보를 받아 쌓습니다(GitHub Actions에서 <code>collect.py</code> 실행). 화면은 10분마다 새 자료를 다시 읽습니다.<br>
+    약 1시간마다 호갱노노 공개 정보를 받아 쌓습니다(GitHub Actions에서 <code>collect.py</code> 실행, GitHub 사정으로 가끔 늦어질 수 있음). 화면은 10분마다 새 자료를 다시 읽습니다.<br>
     휴대폰에서는 브라우저 메뉴의 '홈 화면에 추가'로 앱처럼 쓸 수 있습니다.<br>
     아실에서는 단지 전체 매물 추이(평형 구분 없음)만 가져옵니다. 아실의 가격 정보는 암호화되어 있어 가져오지 않습니다.<br>
     참고용 자료이며 실제 거래 전에는 등기부와 중개사 확인이 필요합니다.
@@ -195,7 +212,8 @@ footer a { color: var(--text-secondary); }
 const DIRS = { s: "남향", se: "남동향", sw: "남서향", e: "동향", w: "서향", n: "북향", ne: "북동향", nw: "북서향" };
 const DIR_ORDER = ["s", "se", "sw", "e", "w", "n", "ne", "nw"];
 const BANDS = ["저층", "중층", "고층"];
-const state = { range: 365, grain: "month", tDir: "all", tBand: "all", tShow: "live", sort: { key: "price", asc: true } };
+const state = { range: 365, grain: "month", tDir: "all", tBand: "all", tDong: "all", tShow: "live", sort: { key: "price", asc: true }, dongSort: { key: "dong", asc: true } };
+const dongNum = (d) => parseInt(d) || 0;
 const charts = {};
 let D = null;
 
@@ -428,6 +446,7 @@ function render() {
   renderRelation(startStr);
   renderKpis(trades, startStr);
   renderTradesTable(trades);
+  renderDongTable(startStr);
   renderListingTable(presentDirs);
 }
 
@@ -522,11 +541,69 @@ function renderKpis(trades, startStr) {
 
 function renderTradesTable(trades) {
   const rows = trades.slice().reverse();
+  document.getElementById("tradeCount").innerHTML = `총 <b>${rows.length}</b>건`;
   document.getElementById("tTrades").innerHTML =
-    `<thead><tr><th>계약일</th><th class="num">층</th><th>구분</th><th class="num">가격</th></tr></thead><tbody>` +
-    (rows.length ? rows.map((t) => `<tr><td>${t.date}</td><td class="num">${t.floor ?? "–"}</td><td>${t.band}</td><td class="num">${won(t.price)}</td></tr>`).join("")
-      : `<tr><td colspan="4" style="color:var(--text-muted)">이 기간에는 거래가 없습니다</td></tr>`) + "</tbody>";
+    `<thead><tr><th class="no">#</th><th>계약일</th><th class="num">층</th><th>구분</th><th class="num">가격</th></tr></thead><tbody>` +
+    (rows.length ? rows.map((t, i) => `<tr><td class="no">${i + 1}</td><td>${t.date}</td><td class="num">${t.floor ?? "–"}</td><td>${t.band}</td><td class="num">${won(t.price)}</td></tr>`).join("")
+      : `<tr><td colspan="5" style="color:var(--text-muted)">이 기간에는 거래가 없습니다</td></tr>`) + "</tbody>";
 }
+
+// ---------- 동별 현황 ----------
+let lastStartStr = null;
+function renderDongTable(startStr) {
+  if (startStr) lastStartStr = startStr;
+  startStr = lastStartStr;
+  const firstSnap = D.snapshots[0]?.t;
+  if (!firstSnap) return;
+  // 비교 기준 시점: 선택 기간 시작과 수집 시작 중 늦은 쪽
+  const base = `${startStr}T00:00+09:00` > firstSnap ? `${startStr}T00:00+09:00` : firstSnap;
+  const baseAct = activeAt(base);
+  const g = {};
+  const row = (d) => g[d] ??= { dong: d, live: [], base: 0, newCnt: 0, goneCnt: 0, down: 0 };
+  for (const l of D.listings) {
+    const r = row(l.dong || "–");
+    if (!l.goneAt) {
+      r.live.push(l);
+      const h = l.priceHistory; if (h.length > 1 && h[h.length - 1][1] < h[0][1]) r.down++;
+    }
+    if (l.firstSeen !== firstSnap && l.firstSeen.slice(0, 10) >= startStr) r.newCnt++;
+    if (l.goneAt && l.goneAt.slice(0, 10) >= startStr) r.goneCnt++;
+  }
+  for (const l of baseAct) row(l.dong || "–").base++;
+  const rows = Object.values(g).map((r) => {
+    const ps = r.live.map((l) => l.price).filter(Boolean);
+    return { ...r, n: r.live.length, diff: r.live.length - r.base, avg: avg(ps), min: ps.length ? Math.min(...ps) : null };
+  });
+  const getters = { dong: (r) => dongNum(r.dong), n: (r) => r.n, diff: (r) => r.diff, avg: (r) => r.avg ?? 0, min: (r) => r.min ?? 0, newCnt: (r) => r.newCnt, goneCnt: (r) => r.goneCnt, down: (r) => r.down };
+  const gt = getters[state.dongSort.key];
+  rows.sort((a, b) => { const x = gt(a), y = gt(b); return (x > y ? 1 : x < y ? -1 : dongNum(a.dong) - dongNum(b.dong)) * (state.dongSort.asc ? 1 : -1); });
+  const maxN = Math.max(1, ...rows.map((r) => r.n));
+  const allPrices = D.listings.filter((l) => !l.goneAt).map((l) => l.price).filter(Boolean);
+  const allAvg = avg(allPrices);
+  const live = rows.reduce((s, r) => s + r.n, 0);
+  document.getElementById("dongCount").innerHTML = `${rows.filter((r) => r.n).length}개 동 · 매물 <b>${live}</b>채`;
+  const head = [["dong", "동"], ["n", "지금 매물"], ["diff", "증감", "num"], ["avg", "평균 호가", "num"], ["min", "최저 호가", "num"], ["newCnt", "신규", "num"], ["goneCnt", "내려감", "num"], ["down", "호가 내린 집", "num"]];
+  const arrow = (k) => state.dongSort.key === k ? (state.dongSort.asc ? " ▲" : " ▼") : "";
+  const sign = (v) => v > 0 ? `<span class="chg-up">+${v}</span>` : v < 0 ? `<span class="chg-down">−${-v}</span>` : "–";
+  const vsAll = (v) => v == null || !allAvg ? "" : ` <span class="${v > allAvg ? "chg-up" : "chg-down"}" style="font-size:12px">${v > allAvg ? "▲" : "▼"}</span>`;
+  document.getElementById("tDong").innerHTML =
+    `<thead><tr><th class="no">#</th>${head.map(([k, l, c]) => `<th data-k="${k}" class="${c || ""}">${l}${arrow(k)}</th>`).join("")}</tr></thead><tbody>` +
+    rows.map((r, i) => `<tr data-dong="${r.dong}" class="${state.tDong === r.dong ? "sel" : ""}"><td class="no">${i + 1}</td><td>${r.dong}</td>` +
+      `<td><span class="bar" style="width:${Math.round(r.n / maxN * 80)}px"></span>${r.n}채</td><td class="num">${sign(r.diff)}</td>` +
+      `<td class="num">${won(r.avg)}${vsAll(r.avg)}</td><td class="num">${won(r.min)}</td>` +
+      `<td class="num">${r.newCnt || "–"}</td><td class="num">${r.goneCnt || "–"}</td><td class="num">${r.down || "–"}</td></tr>`).join("") +
+    `</tbody><tfoot><tr><td></td><td><b>합계</b></td><td><b>${live}채</b></td><td class="num">${sign(rows.reduce((s, r) => s + r.diff, 0))}</td>` +
+    `<td class="num"><b>${won(allAvg)}</b></td><td class="num">${won(allPrices.length ? Math.min(...allPrices) : null)}</td>` +
+    `<td class="num">${rows.reduce((s, r) => s + r.newCnt, 0)}</td><td class="num">${rows.reduce((s, r) => s + r.goneCnt, 0)}</td><td class="num">${rows.reduce((s, r) => s + r.down, 0)}</td></tr></tfoot>`;
+}
+document.getElementById("tDong").addEventListener("click", (e) => {
+  const th = e.target.closest("th");
+  if (th) { if (!th.dataset.k) return; const k = th.dataset.k; state.dongSort = { key: k, asc: state.dongSort.key === k ? !state.dongSort.asc : k === "dong" }; renderDongTable(); return; }
+  const tr = e.target.closest("tbody tr"); if (!tr) return;
+  state.tDong = state.tDong === tr.dataset.dong ? "all" : tr.dataset.dong;
+  renderDongTable(); renderListingTable();
+  if (state.tDong !== "all") document.getElementById("listingCard").scrollIntoView({ behavior: "smooth", block: "start" });
+});
 
 function chipGroup(id, items, key) {
   const el = document.getElementById(id);
@@ -542,8 +619,15 @@ function renderListingTable(presentDirs) {
   document.querySelectorAll("#tShow button").forEach((b) => b.classList.toggle("on", b.dataset.v === state.tShow));
   const now = Date.now();
   const firstSnap = D.snapshots[0]?.t;
+  const dongs = [...new Set(D.listings.map((l) => l.dong).filter(Boolean))].sort((a, b) => dongNum(a) - dongNum(b));
+  if (state.tDong !== "all" && !dongs.includes(state.tDong)) state.tDong = "all";
+  const sel = document.getElementById("tDongSel");
+  sel.innerHTML = [["all", "전체"], ...dongs.map((d) => [d, d])].map(([v, t]) => `<option value="${v}"${state.tDong === v ? " selected" : ""}>${t}</option>`).join("");
   let rows = D.listings.filter((l) => (state.tShow === "live" ? !l.goneAt : !!l.goneAt)
+    && (state.tDong === "all" || l.dong === state.tDong)
     && (state.tDir === "all" || l.dir === state.tDir) && (state.tBand === "all" || l.band === state.tBand));
+  const filtered = state.tDong !== "all" || state.tDir !== "all" || state.tBand !== "all";
+  document.getElementById("listingTitle").innerHTML = `${state.tShow === "live" ? "지금 떠 있는 매물" : "내려간 매물"}${state.tDong !== "all" ? " · " + state.tDong : ""}<span class="count">총 <b>${rows.length}</b>채${filtered ? ` (전체 ${D.listings.filter((l) => state.tShow === "live" ? !l.goneAt : !!l.goneAt).length}채 중)` : ""}</span>`;
   const days = (l) => Math.floor((now - new Date(l.firstSeen)) / 864e5);
   const floorNum = (l) => (isNaN(+l.floor) ? { 저: 5, 중: 16, 고: 28 }[l.floor] ?? 0 : +l.floor);
   const getters = { dong: (l) => parseInt(l.dong) || 0, floor: floorNum, dir: (l) => DIR_ORDER.indexOf(l.dir), type: (l) => l.type, price: (l) => l.price || 0, agents: (l) => l.agents, first: (l) => l.firstSeen, chg: (l) => chg(l) };
@@ -553,19 +637,20 @@ function renderListingTable(presentDirs) {
   const head = [["dong", "동"], ["floor", "층", "num"], ["dir", "향"], ["type", "타입"], ["price", "호가", "num"], ["chg", "호가 변동", "num"], ["agents", "중개사", "num"], ["first", state.tShow === "live" ? "처음 본 날" : "올라온 → 내려간 날"]];
   const arrow = (k) => state.sort.key === k ? (state.sort.asc ? " ▲" : " ▼") : "";
   document.getElementById("tListings").innerHTML =
-    `<thead><tr>${head.map(([k, l, c]) => `<th data-k="${k}" class="${c || ""}">${l}${arrow(k)}</th>`).join("")}</tr></thead><tbody>` +
-    (rows.length ? rows.map((l) => {
+    `<thead><tr><th class="no">#</th>${head.map(([k, l, c]) => `<th data-k="${k}" class="${c || ""}">${l}${arrow(k)}</th>`).join("")}</tr></thead><tbody>` +
+    (rows.length ? rows.map((l, n) => {
       const c = chg(l);
       const isNew = l.firstSeen !== firstSnap && days(l) <= 7;
       const first = state.tShow === "live" ? `${l.firstSeen.slice(0, 10)} <span class="tag ${isNew ? "new" : ""}">${isNew ? "새 매물" : days(l) + "일째"}</span>` : `${l.firstSeen.slice(0, 10)} → ${l.goneAt.slice(0, 10)}`;
-      return `<tr class="${l.goneAt ? "gone" : ""}"><td>${l.dong || "–"}</td><td class="num">${/^\d+$/.test(l.floor) ? l.floor + "층" : l.floor + "층"}</td><td>${DIRS[l.dir] || "–"}</td><td>${l.type || ""}</td>` +
+      return `<tr class="${l.goneAt ? "gone" : ""}"><td class="no">${n + 1}</td><td>${l.dong || "–"}</td><td class="num">${/^\d+$/.test(l.floor) ? l.floor + "층" : l.floor + "층"}</td><td>${DIRS[l.dir] || "–"}</td><td>${l.type || ""}</td>` +
         `<td class="num">${won(l.price)}</td><td class="num ${c > 0 ? "chg-up" : c < 0 ? "chg-down" : ""}">${c ? (c > 0 ? "+" : "−") + won(Math.abs(c)) : "–"}</td><td class="num">${l.agents || "–"}</td><td>${first}</td></tr>`;
-    }).join("") : `<tr><td colspan="8" style="color:var(--text-muted)">해당하는 매물이 없습니다</td></tr>`) + "</tbody>";
+    }).join("") : `<tr><td colspan="9" style="color:var(--text-muted)">해당하는 매물이 없습니다</td></tr>`) + "</tbody>";
 }
 document.getElementById("tListings").addEventListener("click", (e) => {
-  const th = e.target.closest("th"); if (!th) return;
+  const th = e.target.closest("th"); if (!th || !th.dataset.k) return;
   const k = th.dataset.k; state.sort = { key: k, asc: state.sort.key === k ? !state.sort.asc : true }; renderListingTable();
 });
+document.getElementById("tDongSel").addEventListener("change", (e) => { state.tDong = e.target.value; renderListingTable(); renderDongTable(); });
 document.getElementById("tShow").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; state.tShow = b.dataset.v; renderListingTable(); });
 
 function bindSeg(id, key, num) {

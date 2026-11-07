@@ -6,7 +6,7 @@
 - 휴대폰: 위 주소를 열고 브라우저 메뉴에서 "홈 화면에 추가"를 누르면 앱처럼 쓸 수 있습니다.
 
 ## 어떻게 돌아가나
-- GitHub Actions(`.github/workflows/collect.yml`)가 매시간 `collect.py`를 실행해 `data/db.json`, `web/data.js`를 커밋하고 GitHub Pages로 게시합니다. PC가 꺼져 있어도 됩니다.
+- GitHub Actions(`.github/workflows/collect.yml`)가 20분마다 깨어나 직전 수집이 45분 넘었으면 `collect.py`를 실행해 (GitHub 예약 실행이 자주 빠져서 이렇게 함) `data/db.json`, `web/data.js`를 커밋하고 GitHub Pages로 게시합니다. PC가 꺼져 있어도 됩니다.
 - 바로 수집하려면 GitHub 저장소 → Actions → "매시간 수집 및 게시" → Run workflow.
 - 60일 동안 저장소 활동이 없으면 GitHub가 예약 실행을 멈출 수 있습니다. 그때는 Actions 화면에서 다시 켜면 됩니다.
 
