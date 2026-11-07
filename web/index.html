@@ -147,6 +147,7 @@ footer a { color: var(--text-secondary); }
   <h2>매물 (호가)</h2>
   <p class="h2note" id="listingNote">같은 집을 여러 중개사가 올린 경우 한 집으로 셉니다. 매물 기록은 수집을 시작한 날부터 쌓입니다.</p>
   <div class="grid">
+    <div class="card" style="grid-column:1/-1"><h3>단지 전체 매물 수 (아실)</h3><p class="note">아실 '매물 추이' · 모든 평형 합계 · 중복 매물은 1건으로 집계 · 기간 끝 날짜의 값</p><div class="legend" id="lg-asil"></div><div class="chartbox"><canvas id="c-asil"></canvas></div></div>
     <div class="card"><h3>매물 수</h3><p class="note">기간 끝 시점에 떠 있던 집 수</p><div class="legend" id="lg-stock"></div><div class="chartbox"><canvas id="c-stock"></canvas></div></div>
     <div class="card"><h3>새로 올라온 매물 · 내려간 매물</h3><p class="note">기간마다 새로 보인 집 / 목록에서 사라진 집 (거래됐거나 내린 매물)</p><div class="legend" id="lg-flow"></div><div class="chartbox"><canvas id="c-flow"></canvas></div></div>
     <div class="card"><h3>향별 평균 호가</h3><p class="note">거실 기준 창 방향</p><div class="legend" id="lg-dirPrice"></div><div class="chartbox"><canvas id="c-dirPrice"></canvas></div></div>
@@ -177,7 +178,7 @@ footer a { color: var(--text-secondary); }
   <footer>
     매 시간 호갱노노 공개 정보를 받아 쌓습니다(GitHub Actions에서 <code>collect.py</code> 실행). 화면은 10분마다 새 자료를 다시 읽습니다.<br>
     휴대폰에서는 브라우저 메뉴의 '홈 화면에 추가'로 앱처럼 쓸 수 있습니다.<br>
-    아실은 가격이 암호화되어 제공되어 자동으로 가져오지 않습니다. 매물 증감 비교는 위 '아실' 링크에서 직접 확인하세요.<br>
+    아실에서는 단지 전체 매물 추이(평형 구분 없음)만 가져옵니다. 아실의 가격 정보는 암호화되어 있어 가져오지 않습니다.<br>
     참고용 자료이며 실제 거래 전에는 등기부와 중개사 확인이 필요합니다.
   </footer>
 </div>
@@ -246,7 +247,7 @@ function activeAt(t) {
 
 // ---------- 차트 ----------
 function legendHtml(sets) {
-  return sets.map((s) => `<span><i class="${s.dash ? "dash" : ""}" style="background:${s.color}"></i>${s.label}</span>`).join("");
+  return sets.map((s) => `<span><i class="${s.dash ? "dash" : ""}" style="background:${s.color}"></i>${s.label}${s.note ? `<b style="color:var(--text-primary);font-weight:700">${s.note}</b>` : ""}</span>`).join("");
 }
 function drawLine(id, labels, sets, opts = {}) {
   const el = document.getElementById("c-" + id);
@@ -309,11 +310,36 @@ function render() {
   const snapCount = D.snapshots.length;
   const collecting = snapCount < 2 ? "수집을 막 시작해 아직 한 시점만 있습니다. 시간이 지나면 선이 그려집니다." : null;
 
-  // 매물: 기간마다 마지막 스냅샷 시점 기준
-  const lastSnapInBucket = new Array(keys.length).fill(null);
+  // 아실 단지 전체 매물 추이 (기간마다 마지막 날 값)
+  const asil = { 매매: new Array(keys.length).fill(null), 전세: new Array(keys.length).fill(null), 월세: new Array(keys.length).fill(null) };
+  for (const [d, vm, vj, vw] of D.asil || []) {
+    if (d < startStr) continue;
+    const i = idx.get(bucketKey(d, state.grain)); if (i == null) continue;
+    asil.매매[i] = vm; asil.전세[i] = vj; asil.월세[i] = vw;
+  }
+  const asilLast = (D.asil || []).slice(-1)[0];
+  drawLine("asil", labels, ["매매", "전세", "월세"].map((k, i) => ({
+    label: k, note: asilLast ? ` ${asilLast[i + 1]}건` : "", data: asil[k], color: seriesColor(i),
+  })), { emptyText: "아실 자료를 아직 받지 못했습니다" });
+
+  // 매물: 수집을 시작한 때부터만 축을 잡는다. 기록이 짧으면 시간·일 단위로 촘촘하게.
+  const snapStart = firstSnap ? new Date(firstSnap) : end;
+  const lStart = start > snapStart ? start : snapStart;
+  const spanDays = (end - lStart) / 864e5;
+  const lGrain = spanDays <= 3 ? "hour" : spanDays <= 60 ? "day" : state.grain;
+  const pad = (n) => String(n).padStart(2, "0");
+  let lKeys;
+  if (lGrain === "hour") {
+    lKeys = [];
+    const h = new Date(lStart); h.setMinutes(0, 0, 0);
+    while (h <= end) { lKeys.push(`${ymd(h)}T${pad(h.getHours())}`); h.setHours(h.getHours() + 1); }
+  } else lKeys = makeBuckets(lStart, end, lGrain);
+  const lKeyOf = (ts) => lGrain === "hour" ? ts.slice(0, 13) : bucketKey(ts.slice(0, 10), lGrain);
+  const lLabels = lKeys.map((k) => lGrain === "hour" ? `${+k.slice(5, 7)}/${+k.slice(8, 10)} ${+k.slice(11, 13)}시` : bucketLabel(k, lGrain));
+  const lIdx = new Map(lKeys.map((k, i) => [k, i]));
+  const lastSnapInBucket = new Array(lKeys.length).fill(null);
   for (const s of D.snapshots) {
-    if (s.t.slice(0, 10) < startStr) continue;
-    const i = idx.get(bucketKey(s.t.slice(0, 10), state.grain));
+    const i = lIdx.get(lKeyOf(s.t));
     if (i != null) lastSnapInBucket[i] = s.t;
   }
   const stock = [], dirPrice = {}, dirCount = {}, bandPrice = {}, bandCount = {};
@@ -340,38 +366,38 @@ function render() {
       bandCount[b].push(g.length); bandPrice[b].push(avg(g.map((l) => priceAt(l, t)).filter(Boolean)));
     });
   });
-  const newIn = new Array(keys.length).fill(0), goneIn = new Array(keys.length).fill(0);
+  const newIn = new Array(lKeys.length).fill(0), goneIn = new Array(lKeys.length).fill(0);
   for (const l of D.listings) {
-    if (l.firstSeen !== firstSnap && l.firstSeen.slice(0, 10) >= startStr) {
-      const i = idx.get(bucketKey(l.firstSeen.slice(0, 10), state.grain)); if (i != null) newIn[i]++;
-    }
-    if (l.goneAt && l.goneAt.slice(0, 10) >= startStr) {
-      const i = idx.get(bucketKey(l.goneAt.slice(0, 10), state.grain)); if (i != null) goneIn[i]++;
-    }
+    if (l.firstSeen !== firstSnap) { const i = lIdx.get(lKeyOf(l.firstSeen)); if (i != null) newIn[i]++; }
+    if (l.goneAt) { const i = lIdx.get(lKeyOf(l.goneAt)); if (i != null) goneIn[i]++; }
   }
-  // 수집 전 기간은 0 이 아니라 '자료 없음'
-  const firstSnapDay = firstSnap ? firstSnap.slice(0, 10) : "9999";
-  keys.forEach((k, i) => {
-    const bucketEnd = state.grain === "month" ? k + "-31" : (state.grain === "week" ? ymd(new Date(parseDay(k).getTime() + 6 * 864e5)) : k);
-    if (bucketEnd < firstSnapDay) { newIn[i] = null; goneIn[i] = null; }
-  });
+  // 시간 단위일 때 수집하지 않은 칸은 0 이 아니라 빈칸
+  if (lGrain === "hour") lastSnapInBucket.forEach((t, i) => { if (!t) { newIn[i] = null; goneIn[i] = null; } });
+
+  // 범례에 지금 값 적기 (마지막 칸 기준)
+  const lastVal = (arr) => { for (let i = arr.length - 1; i >= 0; i--) if (arr[i] != null) return arr[i]; return null; };
+  const cnt = (arr) => lastVal(arr) == null ? "" : ` ${lastVal(arr)}채`;
+  const pr = (arr) => lastVal(arr) == null ? "" : ` ${won(lastVal(arr))}`;
+  const grainName = { hour: "시간", day: "일", week: "주", month: "월" }[lGrain];
+  document.getElementById("listingNote").textContent =
+    `같은 집을 여러 중개사가 올린 경우 한 집으로 셉니다. 매물 기록은 ${firstSnap ? firstSnap.slice(0, 10) : "수집 시작"}부터 쌓이며, 그 이후만 ${grainName} 단위로 그립니다. 범례 옆 숫자는 지금 값입니다.`;
 
   const neutral = css("--neutral");
-  drawLine("stock", labels, [{ label: "매물 수", data: stock, color: seriesColor(0) }], { emptyText: collecting });
-  drawLine("flow", labels, [
+  drawLine("stock", lLabels, [{ label: "매물 수", data: stock, color: seriesColor(0) }], { emptyText: collecting });
+  drawLine("flow", lLabels, [
     { label: "새로 올라옴", data: newIn, color: seriesColor(0) },
     { label: "내려감", data: goneIn, color: seriesColor(1) },
-  ], { allowZero: true, emptyText: "수집 시작 이후 새로 올라오거나 내려간 매물이 생기면 그려집니다" });
-  drawLine("dirPrice", labels, [
-    { label: "전체 평균", data: allAvg, color: neutral, dash: true },
-    ...presentDirs.map((d, i) => ({ label: DIRS[d], data: dirPrice[d], color: seriesColor(i) })),
-  ], { price: true, emptyText: collecting });
-  drawLine("dirCount", labels, presentDirs.map((d, i) => ({ label: DIRS[d], data: dirCount[d], color: seriesColor(i) })), { emptyText: collecting });
-  drawLine("bandPrice", labels, [
-    { label: "전체 평균", data: allAvg, color: neutral, dash: true },
-    ...BANDS.map((b, i) => ({ label: b, data: bandPrice[b], color: seriesColor(i) })),
-  ], { price: true, emptyText: collecting });
-  drawLine("bandCount", labels, BANDS.map((b, i) => ({ label: b, data: bandCount[b], color: seriesColor(i) })), { emptyText: collecting });
+  ], { allowZero: true });
+  drawLine("dirPrice", lLabels, [
+    { label: "전체 평균", note: pr(allAvg), data: allAvg, color: neutral, dash: true },
+    ...presentDirs.map((d, i) => ({ label: DIRS[d], note: pr(dirPrice[d]), data: dirPrice[d], color: seriesColor(i) })),
+  ], { price: true });
+  drawLine("dirCount", lLabels, presentDirs.map((d, i) => ({ label: DIRS[d], note: cnt(dirCount[d]), data: dirCount[d], color: seriesColor(i) })));
+  drawLine("bandPrice", lLabels, [
+    { label: "전체 평균", note: pr(allAvg), data: allAvg, color: neutral, dash: true },
+    ...BANDS.map((b, i) => ({ label: b, note: pr(bandPrice[b]), data: bandPrice[b], color: seriesColor(i) })),
+  ], { price: true });
+  drawLine("bandCount", lLabels, BANDS.map((b, i) => ({ label: b, note: cnt(bandCount[b]), data: bandCount[b], color: seriesColor(i) })));
 
   // 실거래
   const trades = D.trades.filter((t) => t.date >= startStr && !t.cancel);

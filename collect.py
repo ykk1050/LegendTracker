@@ -105,6 +105,26 @@ def collect_trades(db):
     return added
 
 
+ASIL_URL = ("https://asil.kr/app/data/data_offer_sum.jsp?apt=109359&area=2629010600&c_apt=&c_area=&c_apt2=&c_area2="
+            "&deal=123&mode=2&sSize=&eSize=&sY=2015&sM=1&eY={y}&eM=12")
+
+
+def collect_asil(db):
+    """아실 '매물 추이': 단지 전체(모든 평형) 일별 매매·전세·월세 매물 수. 평형 구분은 없다."""
+    import re
+    url = ASIL_URL.format(y=datetime.now(KST).year)
+    req = urllib.request.Request(url, headers={"User-Agent": HEADERS["User-Agent"],
+                                               "Referer": "https://asil.kr/app/offer_sum_chart.jsp"})
+    with urllib.request.urlopen(req, timeout=30) as r:
+        text = r.read().decode("utf-8", "replace")
+    rows = [json.loads(m) for m in re.findall(r"chartData\[\d+\]=(\{[^}]*\})", text)]
+    store = db.setdefault("asil", {})
+    for row in rows:
+        yy, mm, dd = (int(x) for x in row["Date"].split("/"))
+        store[f"20{yy:02d}-{mm:02d}-{dd:02d}"] = [row.get("VM"), row.get("VJ"), row.get("VW")]
+    return len(rows)
+
+
 def collect_listings(db, now_iso):
     # 1) 단지 전체 매물 요약을 페이지로 모두 받기
     summaries, offset = [], 0
@@ -245,6 +265,7 @@ def build_output(db, now_iso):
             key=lambda x: x["date"]),
         "listings": group_by_unit(db),
         "snapshots": db["snapshots"],
+        "asil": [[d, *v] for d, v in sorted(db.get("asil", {}).items())],
     }
     os.makedirs(os.path.dirname(OUT_PATH), exist_ok=True)
     with open(OUT_PATH, "w", encoding="utf-8") as f:
@@ -263,6 +284,10 @@ def main():
     except Exception as e:  # noqa: BLE001
         log(f"수집 실패: {e}")
         sys.exit(1)
+    try:
+        collect_asil(db)
+    except Exception as e:  # noqa: BLE001  아실이 안 돼도 호갱노노 자료는 저장
+        log(f"아실 매물 추이 실패: {e}")
     save_db(db)
     build_output(db, now_iso)
     log(f"완료: 현재 33평 매매 매물 {active}건, 새 실거래 {added}건 (누적 {len(db['trades'])}건)")
