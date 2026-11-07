@@ -130,6 +130,8 @@ select.pick { font: inherit; font-size: 14px; padding: 4px 8px; border-radius: 6
 @media (max-width: 820px) { .plan { grid-template-columns: 1fr; } }
 .plan img { width: 100%; border-radius: 8px; border: 1px solid var(--border); background: #fff; display: block; }
 .plan dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 14px; }
+.src { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+.src a { color: var(--text-secondary); }
 .plan dt { color: var(--text-muted); }
 .plan dd { margin: 0; font-variant-numeric: tabular-nums; }
 .vent { margin-top: 12px; padding: 10px 12px; border-radius: 8px; background: var(--chip); font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
@@ -202,8 +204,9 @@ footer a { color: var(--text-secondary); }
 
   <div class="card tablecard" id="planCard">
     <h3>타입별 평면도</h3>
-    <p class="note">호갱노노 제공 3D 평면도 · 그림을 누르면 큰 그림 · 매물 표의 타입을 눌러도 여기로 옵니다 · 확장·구조 변경은 집마다 다를 수 있습니다</p>
-    <div class="tools"><div class="seg" id="planSeg"></div></div>
+    <p class="note">평수는 공급면적 ÷ 3.3058 · 그림을 누르면 큰 그림 · 매물 표의 타입을 눌러도 여기로 옵니다 · 맞통풍은 거실 큰 창 맞은편에 막힘없이 창이 있는지를 평면도로 본 것이며, 확장·구조 변경은 집마다 다를 수 있습니다</p>
+    <div class="tools"><div><span class="flabel">33평형</span><div class="seg" id="planSeg"></div></div></div>
+    <div class="tools"><div><span class="flabel">다른 평형</span><div class="seg" id="planSeg2"></div></div></div>
     <div id="planBody"></div>
   </div>
 
@@ -579,42 +582,65 @@ function renderTradesTable(trades) {
 }
 
 // ---------- 타입별 평면도 ----------
-// 호갱노노 단지 정보의 평형별 평면도. vent: 거실 큰 창과 반대편 창이 막힘없이 마주 보는지 — 평면도를 보고 적은 것 (직통인 타입은 없음)
+// 호갱노노 단지 정보의 평형별 평면도. vent: 거실 큰 창과 반대편 창이 막힘없이 마주 보는지 — 평면도를 보고 적은 것 (막힘없는 직통 타입은 없음)
 const PLAN_IMG = "https://image.hogangnono.com/image/original/apt/aNmbc/";
 const PLANS = {
-  "110C": { img: "106777/20210508043412_HhPSidW14V465sMxuW", supply: 110.14, hh: 511, form: "판상형 (거실 앞 · 주방 뒤)", vent: "mid",
-    ventText: "<b>직통 맞통풍은 아님.</b> 거실 큰 창 맞은편은 주방 싱크대 벽입니다. 뒤쪽 창은 옆으로 비켜 있는 다용도실에 있어 다용도실 문을 거쳐야 합니다. 네 타입 중 앞뒤로 바람이 통하는 데는 가장 가깝습니다." },
-  "113A": { img: "106775/20210508043411_phglGLrW6s02R7sop8", supply: 113.79, hh: 627, form: "타워형 (거실 · 주방이 양옆)", vent: "mid",
+  // ---- 33평형 (전용 84㎡대) : 시세판이 매물·실거래를 모으는 타입 ----
+  "110C": { img: "106777/20210508043412_HhPSidW14V465sMxuW", supply: 110.14, priv: 84.98, hh: 511, main: true, form: "판상형 (거실 앞 · 주방 뒤)", vent: "mid",
+    ventText: "<b>직통 맞통풍은 아님.</b> 거실 큰 창 맞은편은 주방 싱크대 벽입니다. 뒤쪽 창은 옆으로 비켜 있는 다용도실에 있어 다용도실 문을 거쳐야 합니다. 33평형 중에서는 앞뒤로 바람이 통하는 데 가장 가깝습니다." },
+  "113A": { img: "106775/20210508043411_phglGLrW6s02R7sop8", supply: 113.79, priv: 84.95, hh: 627, main: true, form: "타워형 (거실 · 주방이 양옆)", vent: "mid",
     ventText: "<b>직통 맞통풍은 아님.</b> 거실 큰 창 맞은편은 주방 벽입니다. 반대쪽 창은 주방 안쪽 다용도실에 있어, 카운터 사이 통로를 지나 꺾여 들어가야 합니다." },
-  "112D": { img: "106778/20210508043413_FqetAugaHPZOnqhNEN", supply: 112.23, hh: 116, form: "타워형 (모서리)", vent: "no",
+  "112D": { img: "106778/20210508043413_FqetAugaHPZOnqhNEN", supply: 112.23, priv: 84.95, hh: 116, main: true, form: "타워형 (모서리)", vent: "no",
     ventText: "<b>맞통풍 없음.</b> 거실 창은 옆면, 주방 다용도실 창은 뒷면이라 서로 직각(ㄱ자)입니다. 거실 맞은편은 방 문과 벽입니다." },
-  "113B": { img: "106776/20190725001654_H00bqankHRtj5Mu0WW", supply: 113.6, hh: 178, form: "타워형 (모서리, 발코니 두 면)", vent: "no",
+  "113B": { img: "106776/20190725001654_H00bqankHRtj5Mu0WW", supply: 113.6, priv: 84.98, hh: 178, main: true, form: "타워형 (모서리, 발코니 두 면)", vent: "no",
     ventText: "<b>맞통풍 없음.</b> 거실 창(앞)과 주방 창(옆)이 직각입니다. 거실 맞은편은 현관·욕실 쪽이라 창이 없습니다." },
+  // ---- 다른 평형 : 평면도만 (매물·시세는 모으지 않음) ----
+  "58": { img: null, supply: 58.23, priv: 39.7, hh: 138, form: "–", vent: null, ventText: "호갱노노에 평면도가 없습니다." },
+  "74": { img: "258649/20260210163906_HOAR6NZkoApKJDeikd", supply: 74.42, priv: 49.31, hh: 130, form: "판상형 (거실 · 주방 한 줄)", vent: "mid",
+    ventText: "<b>단지에서 직통에 가장 가까움.</b> 거실 창과 반대쪽 끝 다용도실 창이 같은 높이에서 일직선으로 마주 봅니다. 사이는 거실·식당·주방이 한 공간이고 다용도실 문 하나만 있습니다." },
+  "83A": { img: "106771/20210508043408_Q1D6vQgAWqU7CANtxe", supply: 83.93, priv: 59.94, hh: 294, form: "타워형", vent: "mid",
+    ventText: "<b>직통 맞통풍은 아님.</b> 거실 창 반대쪽 주방 옆 다용도실에 창이 있지만, 아일랜드 카운터를 지나 살짝 꺾여 들어갑니다 (113A와 비슷)." },
+  "84B": { img: "106772/20210508043409_AtfHSszRojL8wETE7u", supply: 84.21, priv: 59.96, hh: 78, form: "판상형 (방이 한쪽으로 길게)", vent: "no",
+    ventText: "<b>맞통풍 없음.</b> 거실 창 반대쪽은 복도와 방 문입니다. 주방 창은 거실 창과 직각입니다." },
+  "84C": { img: "106773/20210508043410_RMIhAfRUU9yFLnIW36", supply: 84.06, priv: 59.99, hh: 87, form: "판상형 (방이 한쪽으로 길게)", vent: "no",
+    ventText: "<b>맞통풍 없음.</b> 84B와 같은 구조로, 거실 창 반대쪽은 복도와 방 문이고 주방 창은 직각입니다." },
+  "85D": { img: "106774/20210508043411_tEVfDiwtyTq2FNviYH", supply: 85.05, priv: 59.94, hh: 57, form: "판상형 (방이 한쪽으로 길게)", vent: "no",
+    ventText: "<b>맞통풍 없음.</b> 거실 창 반대쪽은 복도 끝 방 문입니다. 주방 창은 거실 창과 직각입니다." },
+  "130B": { img: "106779/20210508043414_7YZUwk6ZiQxUMuqT1h", supply: 130.63, priv: 100.95, hh: 465, form: "판상형 (거실 앞 · 주방 뒤)", vent: "mid",
+    ventText: "<b>직통 맞통풍은 아님.</b> 110C와 비슷하게 거실 앞 창 맞은편이 주방 싱크대 벽이고, 뒤쪽 창은 옆 다용도실에 문을 거쳐 있습니다." },
+  "153A": { img: "106780/20210508043415_jbdzzgxUcbyT2y3SkY", supply: 153.21, priv: 121.97, hh: 108, form: "판상형 (방이 한쪽으로 길게)", vent: "no",
+    ventText: "<b>맞통풍 없음.</b> 거실 창 반대쪽은 복도와 방 문들입니다. 주방 창은 거실 창과 직각입니다." },
+  "154B": { img: "106781/20210508043416_QXwcsO0GpOhBA5Jz2l", supply: 154.72, priv: 121.97, hh: 128, form: "판상형 (방이 한쪽으로 길게)", vent: "no",
+    ventText: "<b>맞통풍 없음.</b> 153A와 같은 구조로, 거실 창 반대쪽은 복도와 방 문들입니다." },
 };
 const VENT_TAG = { yes: ["yes", "맞통풍 O"], mid: ["mid", "반대편 창 있음 (막힘·꺾임)"], no: ["", "맞통풍 X"] };
-const planOrder = () => Object.keys(PLANS).sort((a, b) => PLANS[b].hh - PLANS[a].hh);
+const pyeong = (m2) => (m2 / 3.3058).toFixed(1) + "평";
+const planMain = () => Object.keys(PLANS).filter((t) => PLANS[t].main).sort((a, b) => PLANS[b].hh - PLANS[a].hh);
+const planOther = () => Object.keys(PLANS).filter((t) => !PLANS[t].main).sort((a, b) => PLANS[a].supply - PLANS[b].supply);
 let planType = null;
 function renderPlan() {
-  if (!planType) planType = planOrder()[0];
-  const seg = document.getElementById("planSeg");
-  seg.innerHTML = planOrder().map((t) => `<button data-v="${t}" class="${t === planType ? "on" : ""}">${t}</button>`).join("");
-  const P = PLANS[planType], url = PLAN_IMG + P.img;
+  if (!planType) planType = planMain()[0];
+  const btn = (t) => `<button data-v="${t}" class="${t === planType ? "on" : ""}">${t} · ${pyeong(PLANS[t].supply)}</button>`;
+  document.getElementById("planSeg").innerHTML = planMain().map(btn).join("");
+  document.getElementById("planSeg2").innerHTML = planOther().map(btn).join("");
+  const P = PLANS[planType], url = P.img ? PLAN_IMG + P.img : null;
   const live = LS().filter((l) => !l.goneAt && l.type === planType);
   const ps = live.map((l) => l.price).filter(Boolean);
   const where = state.dong === "all" ? "" : ` (${state.dong})`;
-  const [cls, txt] = VENT_TAG[P.vent];
+  const [cls, txt] = VENT_TAG[P.vent] || ["", ""];
   document.getElementById("planBody").innerHTML = `<div class="plan">
-    <a href="${url}" target="_blank" rel="noopener noreferrer"><img src="${url}?s=720x180&t=outside&q=100" alt="${planType} 평면도" loading="lazy" referrerpolicy="no-referrer"></a>
+    <div>${url ? `<a href="${url}" target="_blank" rel="noopener noreferrer"><img src="${url}?s=720x180&t=outside&q=100" alt="${planType} 평면도" loading="lazy" referrerpolicy="no-referrer"></a>` : `<div class="vent" style="margin:0">평면도 그림이 없습니다</div>`}
+      <div class="src">평면도 출처: <a href="https://hogangnono.com/apt/aNmbc" target="_blank" rel="noopener">호갱노노 · 대연롯데캐슬레전드</a></div></div>
     <div><dl>
-      <dt>타입</dt><dd><b>${planType}</b> <span class="tag ${cls}">${txt}</span></dd>
+      <dt>타입</dt><dd><b>${planType}</b>${P.vent ? ` <span class="tag ${cls}">${txt}</span>` : ""}</dd>
+      <dt>평수</dt><dd><b>${pyeong(P.supply)}</b> (공급 ${P.supply}㎡ · 전용 ${P.priv}㎡ = ${pyeong(P.priv)})</dd>
       <dt>구조</dt><dd>${P.form}</dd>
-      <dt>면적</dt><dd>공급 ${P.supply}㎡ · 전용 84㎡대</dd>
       <dt>세대수</dt><dd>${P.hh}세대</dd>
-      <dt>지금 매물${where}</dt><dd>${live.length}채${ps.length ? ` · 평균 ${won(avg(ps))} · 최저 ${won(Math.min(...ps))}` : ""}</dd>
-      <dt>매물 향</dt><dd>${[...new Set(live.map((l) => DIRS[l.dir]).filter(Boolean))].join(", ") || "–"}</dd>
+      ${P.main ? `<dt>지금 매물${where}</dt><dd>${live.length}채${ps.length ? ` · 평균 ${won(avg(ps))} · 최저 ${won(Math.min(...ps))}` : ""}</dd>
+      <dt>매물 향</dt><dd>${[...new Set(live.map((l) => DIRS[l.dir]).filter(Boolean))].join(", ") || "–"}</dd>` : `<dt>시세</dt><dd style="color:var(--text-muted)">이 시세판은 33평형만 모읍니다</dd>`}
     </dl><div class="vent">${P.ventText}</div></div></div>`;
 }
-document.getElementById("planSeg").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; planType = b.dataset.v; renderPlan(); });
+["planSeg", "planSeg2"].forEach((id) => document.getElementById(id).addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; planType = b.dataset.v; renderPlan(); }));
 function showPlan(t) {
   if (!PLANS[t]) return;
   planType = t; renderPlan();
