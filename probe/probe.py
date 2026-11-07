@@ -1,20 +1,12 @@
-import json, re, urllib.request, os
-H={"User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) personal-apt-tracker","Referer":"https://hogangnono.com/apt/aNmbc","Accept":"application/json, text/html, */*"}
-os.makedirs("out",exist_ok=True)
-def get(u):
-    try:
-        with urllib.request.urlopen(urllib.request.Request(u,headers=H),timeout=30) as r: return r.status, r.read()
-    except Exception as e: return getattr(e,"code","ERR"), str(e).encode()
-log=open("out/log.txt","w")
-for path in ["/api/v2/apts/aNmbc","/api/v2/apts/aNmbc/areas","/api/v2/apts/aNmbc/floor-plans","/api/v2/apts/aNmbc/floorplans","/api/v2/apts/aNmbc/area-infos","/api/v2/apts/aNmbc/detail","/api/v2/apts/aNmbc/plans","/api/apt/aNmbc","/api/v2/apts/aNmbc/pyeongs","/api/v2/apts/aNmbc/area/9","/api/v2/apts/aNmbc/areas/9"]:
-    st,b=get("https://hogangnono.com"+path); log.write(f"{st} {path} {len(b)}\n")
-    open("out/"+path.strip("/").replace("/","_")+".txt","wb").write(b[:400000])
-st,html=get("https://hogangnono.com/apt/aNmbc/0/9"); open("out/page.html","wb").write(html); log.write(f"page {st} {len(html)}\n")
-js=set(re.findall(rb'src="([^"]+\.js)"',html)); log.write(repr(js)+"\n")
-hits=[]
-for j in js:
-    u=j.decode(); u=u if u.startswith("http") else "https://hogangnono.com"+u
-    st,b=get(u)
-    for m in re.finditer(rb'.{0,120}(floor[-_]?plan|floorPlan|planImage|/plans?|unitPlan|areaImage|pyeongImage).{0,160}',b,re.I):
-        hits.append(u+" :: "+m.group(0).decode("utf8","replace"))
-open("out/jshits.txt","w").write("\n".join(hits[:400]))
+import urllib.request, os
+os.makedirs("out/plans",exist_ok=True)
+U={"110C":"106777/20210508043412_HhPSidW14V465sMxuW","112D":"106778/20210508043413_FqetAugaHPZOnqhNEN","113A":"106775/20210508043411_phglGLrW6s02R7sop8","113B":"106776/20190725001654_H00bqankHRtj5Mu0WW"}
+log=open("out/plans/log.txt","w")
+for t,p in U.items():
+    u="https://image.hogangnono.com/image/original/apt/aNmbc/"+p
+    for name,h in [("noref",{"User-Agent":"Mozilla/5.0"}),("ref",{"User-Agent":"Mozilla/5.0","Referer":"https://hogangnono.com/"})]:
+        try:
+            with urllib.request.urlopen(urllib.request.Request(u,headers=h),timeout=30) as r:
+                b=r.read(); log.write(f"{t} {name} {r.status} {r.headers.get('content-type')} {len(b)}\n")
+                if name=="noref": open(f"out/plans/{t}.img","wb").write(b)
+        except Exception as e: log.write(f"{t} {name} ERR {e}\n")
