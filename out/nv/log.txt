@@ -1,8 +1,0 @@
-page ERR 28
-ERR https://fin.land.naver.com/front-api/v1/complex?complexNumber=109359 28 b'The read operation timed out'
-ERR https://fin.land.naver.com/front-api/v1/complex/pyeongList?complexNumber=109359 28 b'The read operation timed out'
-ERR https://fin.land.naver.com/front-api/v1/complex/pyeong?complexNumber=109359&pyeongTypeNumber=6 28 b'The read operation timed out'
-ERR https://fin.land.naver.com/front-api/v1/complex/pyeongTypes?complexNumber=109359 28 b'The read operation timed out'
-ERR https://fin.land.naver.com/front-api/v1/complex/floorPlan?complexNumber=109359&pyeongTypeNumber=6 28 b'The read operation timed out'
-ERR https://new.land.naver.com/api/complexes/109359?sameAddressGroup=false 28 b'The read operation timed out'
-[]
