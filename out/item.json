@@ -1,0 +1,157 @@
+{
+ "detail": {
+  "data": {
+   "aptInfo": {
+    "aptHash": "aNmbc",
+    "aptName": "대연롯데캐슬레전드1단지",
+    "aptType": 0,
+    "startDate": "20180227",
+    "zigbangAptId": 93801,
+    "regionCode": "2629010600",
+    "numberParkingSpaceByHousehold": 1.18,
+    "address": "부산광역시 남구 대연동 1872",
+    "roadAddress": "부산광역시 남구 수영로 135",
+    "approvalDate": "20180227",
+    "totalHousehold": 2917,
+    "lat": 35.1363417,
+    "lng": 129.0811443,
+    "aptStatus": 5
+   },
+   "hoInfo": {
+    "areaHoId": 18906563,
+    "aptDongName": "125동",
+    "buildingFloor": 35,
+    "floor": "15",
+    "floorPlan": "https://image.hogangnono.com/zb/ic/floorplan/37299/153670/bf2991dee5a8443abaad5bae7ba44131.png",
+    "vrHouseThumbnail": null,
+    "direction": "sw",
+    "danjiRoomTypeId": 441189,
+    "danjiRoomType": "113B",
+    "roomCount": 3,
+    "bathRoomCount": 2,
+    "privateArea": 84.98,
+    "publicArea": 113.6
+   },
+   "vrItems": [],
+   "items": [
+    {
+     "aptHash": "aNmbc",
+     "aptName": "대연롯데캐슬레전드1단지",
+     "itemId": 51058800,
+     "areaHoId": 18906563,
+     "itemSource": "zigbang",
+     "itemType": "self_ad",
+     "ownItem": false,
+     "itemTags": [],
+     "isActualItemChecked": true,
+     "danjiRoomTypeId": 441189,
+     "danjiRoomType": "113B",
+     "privateArea": 84.98,
+     "publicArea": 113.6,
+     "vrHouseThumbnail": null,
+     "itemImageUrls": [],
+     "floorPlan": "https://image.hogangnono.com/zb/ic/floorplan/37299/153670/bf2991dee5a8443abaad5bae7ba44131.png",
+     "tradeType": 0,
+     "deposit": 84000,
+     "rent": 0,
+     "aptDongName": "125동",
+     "countLikeItem": 0,
+     "isLike": false,
+     "notificationComment": "중개사무소가 등록한 매물",
+     "itemTitle": "1.롯데레전드84B 외부엘비연결동 넓은베란다 에어컨외옵션유",
+     "itemDescription": "-주출입구.외부엘비연결동 \n-진출입이 편리\n-에어컨3대 중문 등 옵션유\n-관리상태굿 ",
+     "effectivenessUpdatedAt": "2026-11-06T23:37:21.000Z",
+     "itemRequiredInfo": {
+      "moveinDate": "즉시입주가능",
+      "privateArea": 84.98,
+      "publicArea": 113.6,
+      "buildingFloor": 35,
+      "floor": "15",
+      "direction": "sw",
+      "directionBase": "거실기준",
+      "roomCount": 3,
+      "bathroomCount": 2,
+      "manageCostDetail": {
+       "manageCostType": "etc",
+       "etcManageCost": {
+        "monthlyCost": 120000,
+        "includeItems": [
+         "전기",
+         "일반(공용) 관리비",
+         "수도",
+         "TV"
+        ],
+        "excludeItems": [
+         "가스",
+         "난방",
+         "기타",
+         "인터넷"
+        ],
+        "periodBasis": "최근 3개월 관리비 평균",
+        "costBasisDescription": "관리규약에 따라 부과해요."
+       }
+      },
+      "adItemRequiredInfo": {
+       "address": "부산시 남구 수영로 135",
+       "relayItemType": "아파트",
+       "approvalDate": "20180227",
+       "numberParkingSpace": 3434,
+       "numberParkingSpaceByHousehold": 1.18,
+       "hasViolations": false,
+       "registrationId": 51058800
+      }
+     },
+     "agent": {
+      "agentId": 21551841,
+      "agentType": "aptpro",
+      "agentName": "롯데레전드공인중개사사무소",
+      "profileUrl": "https://ic.zigbang.com/vp/profile/21551841/9898460b-9557-4e3d-b356-f9f46ec27e34.jpg",
+      "introTitle": "대연롯데캐슬레전드 상가 109호 위치한 롯데레전드 부동산 입니다.\n재개발 진행 부터 고객과 함께 레전드 역사 흐름의 세월과 함께 같이 한 부동산 입니다.\n믿고 신뢰 할 수 있는 소중한 인연을 이어 갈 수 있도록  최선을 다하겠습니다.\n",
+      "agentPhone": "01082523064",
+      "itemCount": 168,
+      "itemCountPerTradeType": {
+       "trade": 141,
+       "deposit": 17,
+       "rent": 10
+      },
+      "canChat": true,
+      "realtorCanChat": true,
+      "responseRate": 100,
+      "averageResponseTime": 1920,
+      "isNightConsultingAvailable": true,
+      "isHolidayConsultingAvailable": true,
+      "responseRateTag": "최고",
+      "callResponseRate": 100,
+      "callAverageResponseTime": 32,
+      "callResponseCriteriaRate": 80,
+      "callResponseCriteriaTime": 10,
+      "chatResponseRate": 0,
+      "chatAverageResponseTime": 0,
+      "chatResponseCriteriaRate": 80,
+      "chatResponseCriteriaTime": 10
+     }
+    }
+   ],
+   "acceptedLocalAgents": [],
+   "depositMin": 84000,
+   "depositMax": 84000,
+   "rentMin": 0,
+   "rentMax": 0,
+   "isCloseFirstItem": false,
+   "itemCount": 1
+  },
+  "status": "success"
+ },
+ "/api/v2/items/51058800": {
+  "error": "HTTP Error 400: Bad Request"
+ },
+ "/api/v2/item/51058800": {
+  "error": "HTTP Error 404: Not Found"
+ },
+ "/api/v2/items/51058800/detail": {
+  "error": "HTTP Error 404: Not Found"
+ },
+ "/api/v2/item-catalogs/items/51058800": {
+  "error": "HTTP Error 404: Not Found"
+ }
+}
