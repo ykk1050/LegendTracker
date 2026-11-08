@@ -209,10 +209,12 @@ footer a { color: var(--text-secondary); }
       <button class="pick" data-p="typePanel" id="typeBtn">타입 전체 ▾</button>
       <button class="pick" data-p="dirPanel" id="dirBtn">향 전체 ▾</button>
       <button class="pick" data-p="bandPanel" id="bandBtn">층 전체 ▾</button>
+      <button class="pick" data-p="ventPanel" id="ventBtn">맞통풍 전체 ▾</button>
       <button class="pick reset" id="resetBtn">모두 풀기</button>
     </div>
     <div class="dongpanel" id="typePanel"><div class="seg" id="topType"></div><div class="dpbar"><span class="hint">여러 개 고를 수 있음 · 타입을 눌러 평면도는 아래 '타입별 평면도'에서</span><button class="pick pclose">닫기</button></div></div>
     <div class="dongpanel" id="dirPanel"><div class="seg" id="topDir"></div><div class="dpbar"><span class="hint">여러 개 고를 수 있음</span><button class="pick pclose">닫기</button></div></div>
+    <div class="dongpanel" id="ventPanel"><div class="seg" id="topVent"></div><div class="dpbar"><span class="hint">맞통풍 O = 거실 큰 창과 주방 창이 일직선으로 뚫린 타입(110C·113A) · 아래 '타입별 평면도' 참고</span><button class="pick pclose">닫기</button></div></div>
     <div class="dongpanel" id="bandPanel"><div class="seg" id="topBand"></div><div class="dpbar"><span class="hint">저층 1~10 · 중층 11~22 · 고층 23층 이상 · 여러 개 고를 수 있음</span><button class="pick pclose">닫기</button></div></div>
     <div class="dongpanel" id="dongPanel">
       <div class="dmap"><svg id="dongMap" viewBox="0 0 400 315"></svg></div>
@@ -295,7 +297,7 @@ footer a { color: var(--text-secondary); }
 const DIRS = { s: "남향", se: "남동향", sw: "남서향", e: "동향", w: "서향", n: "북향", ne: "북동향", nw: "북서향" };
 const DIR_ORDER = ["s", "se", "sw", "e", "w", "n", "ne", "nw"];
 const BANDS = ["저층", "중층", "고층"];
-const state = { range: 365, grain: "month", tDir: [], tBand: [], dongs: [], types: [], tShow: "live", tGrp: "all", sort: { key: "price", asc: true }, dongSort: { key: "dong", asc: true } };
+const state = { range: 365, grain: "month", tDir: [], tBand: [], dongs: [], types: [], vents: [], tShow: "live", tGrp: "all", sort: { key: "price", asc: true }, dongSort: { key: "dong", asc: true } };
 const dongNum = (d) => parseInt(d) || 0;
 // 단지 배치 (OpenStreetMap 건물 모양을 북쪽이 위로 오게 옮긴 것)
 const DONG_MAP = {"101동":{"d":"M14.0,50.1L16.1,59.9L23.5,58.4L22.7,54.9L25.8,54.2L26.4,57.5L35.9,55.4L33.9,45.9Z","x":24.8,"y":54.5},"102동":{"d":"M50.4,36.1L50.9,45.9L62.2,45.9L62.0,42.0L65.8,41.2L66.8,43.5L76.1,41.5L74.0,31.5L64.8,34.8L60.7,35.8Z","x":63.4,"y":39.8},"103동":{"d":"M83.0,33.7L89.3,42.3L112.9,24.8L106.6,16.3Z","x":98.0,"y":29.3},"104동":{"d":"M128.3,18.2L125.4,27.6L142.8,32.8L156.7,41.4L164.4,28.8L151.6,20.9L148.2,26.5L141.0,22.0Z","x":144.8,"y":27.3},"105동":{"d":"M177.5,25.1L178.4,33.5L184.3,34.3L189.2,41.3L199.7,34.0L194.6,26.6L198.7,18.2L191.9,14.9L187.4,24.1Z","x":189.1,"y":28.0},"106동":{"d":"M230.8,22.5L225.2,34.0L238.6,40.5L242.6,32.3L256.6,32.3L256.6,22.9L238.7,22.8L235.9,14.0L228.8,16.3Z","x":239.3,"y":26.4},"107동":{"d":"M264.6,24.5L265.1,33.9L282.8,33.0L300.8,40.2L304.2,31.6L283.9,23.5Z","x":283.6,"y":31.1},"108동":{"d":"M319.1,119.6L338.0,108.8L333.2,100.4L321.8,106.9L309.9,86.0L302.4,90.3Z","x":320.7,"y":102.0},"109동":{"d":"M284.0,70.2L290.5,71.3L288.6,82.0L294.3,90.7L281.6,99.0L277.8,93.3L270.9,92.8L271.4,84.6L278.1,85.1L281.9,82.0Z","x":281.9,"y":85.1},"110동":{"d":"M225.2,92.3L235.7,96.9L240.5,85.8L234.7,83.3L238.7,74.1L235.1,68.7L228.4,73.2L230.2,80.8Z","x":233.5,"y":81.9},"111동":{"d":"M185.0,69.9L191.5,71.1L189.6,81.7L195.3,90.4L182.6,98.8L178.8,93.0L171.8,92.6L172.4,84.4L179.0,84.8L182.9,81.7Z","x":182.9,"y":84.8},"112동":{"d":"M132.4,85.2L131.6,94.0L143.3,95.1L149.8,100.1L159.1,88.3L149.0,80.4L144.3,86.3Z","x":144.2,"y":89.9},"113동":{"d":"M131.7,143.6L130.9,152.5L142.6,153.5L149.1,158.6L158.4,146.8L148.3,138.8L143.6,144.7Z","x":143.5,"y":148.4},"114동":{"d":"M180.9,127.6L187.4,128.8L185.5,139.5L191.2,148.1L178.5,156.5L174.7,150.8L167.7,150.3L168.3,142.1L174.9,142.5L178.8,139.5Z","x":178.8,"y":142.6},"115동":{"d":"M222.5,149.3L233.0,153.8L237.8,142.7L232.0,140.2L236.0,131.0L232.4,125.7L225.7,130.1L227.5,137.7Z","x":230.8,"y":138.8},"116동":{"d":"M279.3,125.9L285.8,127.0L283.9,137.7L289.6,146.4L276.9,154.7L273.1,149.0L266.1,148.5L266.7,140.3L273.3,140.8L277.2,137.7Z","x":277.2,"y":140.8},"117동":{"d":"M306.7,152.4L314.6,169.7L341.3,157.6L337.7,149.7L319.4,158.1L315.0,148.5Z","x":322.5,"y":156.0},"118동":{"d":"M288.7,187.9L295.1,189.1L293.2,199.8L298.9,208.4L286.2,216.8L282.4,211.0L271.4,209.7L272.4,201.6L282.7,202.8L286.5,199.8Z","x":285.8,"y":202.7},"119동":{"d":"M229.6,214.1L239.4,218.1L243.4,208.2L237.5,205.8L240.9,197.3L233.0,185.4L225.9,190.1L234.2,202.7Z","x":235.5,"y":202.7},"120동":{"d":"M188.4,190.5L194.8,191.6L192.9,202.3L198.6,211.0L185.9,219.4L182.1,213.6L175.2,213.1L175.7,204.9L182.4,205.4L186.2,202.3Z","x":186.2,"y":205.4},"121동":{"d":"M124.0,201.9L123.2,210.8L134.9,211.8L141.3,216.9L150.6,205.1L140.5,197.1L135.9,203.0Z","x":135.8,"y":206.7},"122동":{"d":"M242.9,272.1L250.1,268.1L240.3,250.7L233.2,254.8Z","x":241.6,"y":261.4},"123동":{"d":"M245.0,275.4L259.2,301.2L275.9,292.0L271.5,284.1L262.2,289.2L252.4,271.3Z","x":261.0,"y":285.5},"124동":{"d":"M278.4,287.5L295.9,294.1L299.4,284.9L312.9,269.4L306.1,263.4L293.8,277.5L291.5,283.4L281.4,279.6Z","x":294.9,"y":280.0},"125동":{"d":"M310.0,226.0L324.1,250.3L340.4,240.9L335.8,233.0L328.7,237.1L319.2,220.7Z","x":326.4,"y":234.7},"126동":{"d":"M386.0,215.1L380.9,231.2L381.5,243.4L361.6,244.4L360.9,232.3L371.9,231.7L378.0,212.5Z","x":374.4,"y":230.1},"127동":{"d":"M381.9,165.6L372.4,181.2L369.3,192.0L351.9,187.0L354.9,176.7L364.3,179.4L375.3,161.6Z","x":367.2,"y":177.6}};
@@ -304,15 +306,18 @@ const DONG_MAP = {"101동":{"d":"M14.0,50.1L16.1,59.9L23.5,58.4L22.7,54.9L25.8,5
 const dongOn = () => state.dongs.length > 0;
 const dongLabel = () => state.dongs.length > 3 ? `${state.dongs.slice(0, 3).join(", ")} 외 ${state.dongs.length - 3}개 동` : state.dongs.join(", ");
 const typeOn = () => state.types.length > 0;
-const anyOn = () => dongOn() || typeOn() || state.tDir.length > 0 || state.tBand.length > 0;
+const ventOf = (t) => ["yes", "likely"].includes(PLANS[t]?.vent) ? "yes" : "no";
+const anyOn = () => dongOn() || typeOn() || state.tDir.length > 0 || state.tBand.length > 0 || state.vents.length > 0;
 // 동만 빼고 거른 매물 (동별 현황 표처럼 동끼리 비교할 때)
 const LT = () => D.listings.filter((l) => (!typeOn() || state.types.includes(l.type))
+  && (!state.vents.length || state.vents.includes(ventOf(l.type)))
   && (!state.tDir.length || state.tDir.includes(l.dir)) && (!state.tBand.length || state.tBand.includes(l.band)));
 // 동·타입·향·층을 모두 거른 매물
 const LS = () => dongOn() ? LT().filter((l) => state.dongs.includes(l.dong)) : LT();
 // 고른 조건 이름: "105동, 106동 · 110C · 남향 · 고층"
 const pickLabel = () => [dongOn() ? dongLabel() : "", typeOn() ? state.types.join("·") : "",
-  state.tDir.map((d) => DIRS[d]).join("·"), state.tBand.join("·")].filter(Boolean).join(" · ");
+  state.tDir.map((d) => DIRS[d]).join("·"), state.tBand.join("·"),
+  state.vents.length === 1 ? (state.vents[0] === "yes" ? "맞통풍 O" : "맞통풍 X") : ""].filter(Boolean).join(" · ");
 const toggle = (arr, v) => arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v];
 const charts = {};
 let D = null;
@@ -792,7 +797,7 @@ function renderDongTable(startStr) {
   const allPrices = LT().filter((l) => !l.goneAt).map((l) => l.price).filter(Boolean);
   const allAvg = avg(allPrices);
   const live = rows.reduce((s, r) => s + r.n, 0);
-  const nd = [typeOn() ? state.types.join("·") : "", state.tDir.map((d) => DIRS[d]).join("·"), state.tBand.join("·")].filter(Boolean).join(" · ");
+  const nd = [typeOn() ? state.types.join("·") : "", state.tDir.map((d) => DIRS[d]).join("·"), state.tBand.join("·"), state.vents.length === 1 ? (state.vents[0] === "yes" ? "맞통풍 O" : "맞통풍 X") : ""].filter(Boolean).join(" · ");
   document.getElementById("dongTypeNote").textContent = nd ? `· ${nd}만` : "";
   document.getElementById("dongCount").innerHTML = `${rows.filter((r) => r.n).length}개 동 · 매물 <b>${live}</b>채`;
   const head = [["dong", "동"], ["n", "지금 매물"], ["diff", "증감", "num"], ["avg", "평균 호가", "num"], ["min", "최저 호가", "num"], ["newCnt", "신규", "num"], ["goneCnt", "내려감", "num"], ["down", "호가 내린 집", "num"]];
@@ -870,12 +875,12 @@ document.getElementById("tListings").addEventListener("click", (e) => {
   const k = th.dataset.k; state.sort = { key: k, asc: state.sort.key === k ? !state.sort.asc : true }; renderListingTable();
 });
 function saveView() {
-  try { localStorage.setItem("legend-view", JSON.stringify({ range: state.range, grain: state.grain, dongs: state.dongs, types: state.types, tDir: state.tDir, tBand: state.tBand })); } catch (_) {}
+  try { localStorage.setItem("legend-view", JSON.stringify({ range: state.range, grain: state.grain, dongs: state.dongs, types: state.types, tDir: state.tDir, tBand: state.tBand, vents: state.vents })); } catch (_) {}
 }
 function setDongs(arr) {
   state.dongs = arr.slice().sort((a, b) => dongNum(a) - dongNum(b)); saveView(); render();
 }
-const PANELS = ["dongPanel", "typePanel", "dirPanel", "bandPanel"];
+const PANELS = ["dongPanel", "typePanel", "dirPanel", "bandPanel", "ventPanel"];
 function openPanel(id) {
   const willOpen = id && !document.getElementById(id).classList.contains("on");
   PANELS.forEach((p) => document.getElementById(p).classList.toggle("on", willOpen && p === id));
@@ -889,7 +894,7 @@ document.getElementById("fBtns").addEventListener("click", (e) => {
 document.querySelectorAll(".pclose").forEach((b) => b.addEventListener("click", () => openPanel(null)));
 const allDirs = () => DIR_ORDER.filter((d) => D.listings.some((l) => l.dir === d));
 function applyFilters() { saveView(); render(); }
-function clearFilters() { state.dongs = []; state.types = []; state.tDir = []; state.tBand = []; applyFilters(); }
+function clearFilters() { state.dongs = []; state.types = []; state.tDir = []; state.tBand = []; state.vents = []; applyFilters(); }
 document.getElementById("dongAll").addEventListener("click", () => setDongs([]));
 document.getElementById("dongMap").addEventListener("click", (e) => {
   const g = e.target.closest("g.has"); if (!g) return;
@@ -914,6 +919,7 @@ function syncDong() {
   const cnt = (f) => D.listings.filter((l) => !l.goneAt && f(l)).length;
   chipGroup("topType", typesAll.map((t) => [t, `${t} <span class="hint">${cnt((l) => l.type === t)}</span>`]), "types", applyFilters);
   chipGroup("topDir", allDirs().map((d) => [d, `${DIRS[d]} <span class="hint">${cnt((l) => l.dir === d)}</span>`]), "tDir", applyFilters);
+  chipGroup("topVent", [["yes", `맞통풍 O <span class="hint">${cnt((l) => ventOf(l.type) === "yes")}</span>`], ["no", `맞통풍 X <span class="hint">${cnt((l) => ventOf(l.type) === "no")}</span>`]], "vents", applyFilters);
   chipGroup("topBand", BANDS.map((b) => [b, `${b} <span class="hint">${cnt((l) => l.band === b)}</span>`]), "tBand", applyFilters);
   const btn = (id, name, arr, fmt = (x) => x) => {
     const el = document.getElementById(id);
@@ -924,6 +930,7 @@ function syncDong() {
   btn("typeBtn", "타입", state.types);
   btn("dirBtn", "향", state.tDir, (d) => DIRS[d].replace("향", ""));
   btn("bandBtn", "층", state.tBand);
+  btn("ventBtn", "맞통풍", state.vents, (v) => v === "yes" ? "O" : "X");
   document.getElementById("resetBtn").classList.toggle("show", one);
   document.getElementById("listingH2").textContent = one ? `매물 (호가) · ${pickLabel()}` : "매물 (호가)";
   const note = document.getElementById("dongNote");
@@ -950,7 +957,7 @@ try {
     if (typeof saved.dong === "string") { saved.dongs = saved.dong === "all" ? [] : [saved.dong]; delete saved.dong; } // 예전 저장값
     Object.assign(state, saved);
     if (!Array.isArray(state.dongs)) state.dongs = [];
-    for (const k of ["types", "tDir", "tBand"]) if (!Array.isArray(state[k])) state[k] = [];
+    for (const k of ["types", "tDir", "tBand", "vents"]) if (!Array.isArray(state[k])) state[k] = [];
     document.querySelectorAll("#rangeSeg button").forEach((x) => x.classList.toggle("on", +x.dataset.v === state.range));
     document.querySelectorAll("#grainSeg button").forEach((x) => x.classList.toggle("on", x.dataset.v === state.grain));
   }
