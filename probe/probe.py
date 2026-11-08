@@ -1,11 +1,28 @@
-import urllib.request, urllib.parse, json
-q='''[out:json][timeout:60];
-(way["building"](around:450,35.1363417,129.0811443);
- relation["building"](around:450,35.1363417,129.0811443););
-out geom tags;'''
-for ep in ["https://overpass-api.de/api/interpreter","https://overpass.kumi.systems/api/interpreter"]:
+import urllib.request, json, re, os
+os.makedirs("out/nv",exist_ok=True)
+UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36"
+def get(u,ref="https://fin.land.naver.com/complexes/109359",extra=None):
+    h={"User-Agent":UA,"Referer":ref,"Accept":"application/json, text/plain, */*","Accept-Language":"ko-KR,ko;q=0.9"}
+    if extra: h.update(extra)
     try:
-        req=urllib.request.Request(ep,data=urllib.parse.urlencode({"data":q}).encode(),headers={"User-Agent":"LegendTracker/1.0 (personal)"})
-        with urllib.request.urlopen(req,timeout=90) as r: d=json.load(r)
-        open("out/osm.json","w").write(json.dumps(d,ensure_ascii=False)); print(ep,"ok",len(d["elements"])); break
-    except Exception as e: print(ep,"ERR",e)
+        with urllib.request.urlopen(urllib.request.Request(u,headers=h),timeout=30) as r: return r.status,r.read()
+    except Exception as e: return getattr(e,"code","ERR"),(getattr(e,"read",lambda:b"")() or str(e).encode())
+log=open("out/nv/log.txt","w")
+st,html=get("https://fin.land.naver.com/complexes/109359?tab=complex-info&transactionPyeongTypeNumber=6")
+open("out/nv/page.html","wb").write(html); log.write(f"page {st} {len(html)}\n")
+cands=["https://fin.land.naver.com/front-api/v1/complex?complexNumber=109359",
+"https://fin.land.naver.com/front-api/v1/complex/pyeongList?complexNumber=109359",
+"https://fin.land.naver.com/front-api/v1/complex/pyeong?complexNumber=109359&pyeongTypeNumber=6",
+"https://fin.land.naver.com/front-api/v1/complex/pyeongTypes?complexNumber=109359",
+"https://fin.land.naver.com/front-api/v1/complex/floorPlan?complexNumber=109359&pyeongTypeNumber=6",
+"https://new.land.naver.com/api/complexes/109359?sameAddressGroup=false"]
+for u in cands:
+    st,b=get(u); log.write(f"{st} {u} {len(b)} {b[:200]!r}\n")
+    open("out/nv/"+re.sub(r'\W+','_',u.split('naver.com/')[1])[:80]+".txt","wb").write(b[:300000])
+js=set(re.findall(rb'(?:src|href)="([^"]+\.js)"',html)); log.write(repr(list(js))[:3000]+"\n")
+hits=set()
+for j in js:
+    u=j.decode(); u=u if u.startswith("http") else "https://fin.land.naver.com"+u
+    st,b=get(u)
+    for m in re.finditer(rb'["`](/front-api/v1/[A-Za-z0-9/_\-]+)',b): hits.add(m.group(1).decode())
+open("out/nv/endpoints.txt","w").write("\n".join(sorted(hits)))
