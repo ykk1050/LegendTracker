@@ -8,6 +8,7 @@
 """
 import json
 import os
+import re
 import sys
 import time
 import urllib.request
@@ -222,6 +223,7 @@ def collect_listings(db, now_iso):
                     "price": price,
                     "priceHistory": [[now_iso, price]],
                     "title": (it or {}).get("itemTitle") or s.get("itemTitle"),
+                    "desc": (it or {}).get("itemDescription") if it else None,
                 }
                 db["items"][iid] = rec
             else:
@@ -233,6 +235,23 @@ def collect_listings(db, now_iso):
                 elif not it and len(item_ids) == 1 and s.get("deposit") and s["deposit"] != rec["price"]:
                     rec["price"] = s["deposit"]
                     rec["priceHistory"].append([now_iso, s["deposit"]])
+
+    # 2-1) 설명글을 아직 못 받은 떠 있는 매물은 상세를 받아 채운다 (확장 여부 찾기용, 한 번에 40집까지)
+    need = sorted({db["items"][i]["hoId"] for i in seen_now if "desc" not in db["items"][i] or db["items"][i]["desc"] is None})
+    for hid in need[:40]:
+        try:
+            det = get(f"/api/v2/item-catalogs/{hid}?tradeType=0&offset=0&limit=20")
+        except Exception as e:  # noqa: BLE001
+            log(f"설명글 받기 실패 {hid}: {e}")
+            continue
+        for it in det.get("items", []):
+            rec = db["items"].get(str(it["itemId"]))
+            if rec is not None:
+                rec["desc"] = it.get("itemDescription") or ""
+        for i in seen_now:  # 상세에 안 나온 매물은 빈 설명으로 표시해 다시 받지 않게
+            r = db["items"][i]
+            if r["hoId"] == hid and r.get("desc") is None:
+                r["desc"] = ""
 
     # 3) 이번에 안 보인 매물은 내려간 것으로 표시
     for iid, rec in db["items"].items():
@@ -261,6 +280,16 @@ def month_counts(dates):
     for d in dates:
         out[d[:7]] = out.get(d[:7], 0) + 1
     return dict(sorted(out.items()))
+
+
+def expansion(texts):
+    """중개사 제목·설명에서 발코니 확장 여부를 찾는다. 확인 못 하면 None."""
+    t = " ".join(x for x in texts if x).replace(" ", "")
+    if re.search(r"비확장|미확장|확장안됨|확장안함|확장[xX]|기본형", t):
+        return "비확장"
+    if re.search(r"확장", t):
+        return "확장"
+    return None
 
 
 def group_by_unit(db):
@@ -296,6 +325,7 @@ def group_by_unit(db):
             "price": min(prices) if prices else None,
             "agents": len(live), "firstSeen": first, "goneAt": gone,
             "priceHistory": hist,
+            "ext": expansion([x for i in its for x in (i.get("title"), i.get("desc"))]),
         })
     return result
 

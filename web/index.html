@@ -243,6 +243,7 @@ footer a { color: var(--text-secondary); }
 
   <div class="card tablecard" id="listingCard">
     <h3 id="listingTitle">지금 떠 있는 매물</h3>
+    <p class="note">'확장' 칸은 중개사가 제목·설명에 "확장"·"비확장"을 적은 경우만 표시합니다 (– = 적혀 있지 않음)</p>
     <div class="tools">
       <div><span class="flabel">동 <span class="hint">(여러 개 · 화면 전체에 적용)</span></span><div class="seg" id="tDongChips"></div></div>
       <div><span class="flabel">타입 <span class="hint">(여러 개 · 화면 전체에 적용)</span></span><div class="seg" id="tType"></div></div>
@@ -847,11 +848,11 @@ function renderListingTable(presentDirs) {
   document.getElementById("listingTitle").innerHTML = `${state.tShow === "live" ? "지금 떠 있는 매물" : "내려간 매물"}${pickLabel() ? " · " + pickLabel() : ""}<span class="count">총 <b>${rows.length}</b>채${anyOn() ? ` (단지 전체 ${D.listings.filter(shown).length}채 중)` : ""}</span>`;
   const days = (l) => Math.floor((now - new Date(l.firstSeen)) / 864e5);
   const floorNum = (l) => (isNaN(+l.floor) ? { 저: 5, 중: 16, 고: 28 }[l.floor] ?? 0 : +l.floor);
-  const getters = { dong: (l) => parseInt(l.dong) || 0, floor: floorNum, dir: (l) => DIR_ORDER.indexOf(l.dir), type: (l) => l.type, price: (l) => l.price || 0, agents: (l) => l.agents, first: (l) => l.firstSeen, chg: (l) => chg(l) };
+  const getters = { dong: (l) => parseInt(l.dong) || 0, floor: floorNum, dir: (l) => DIR_ORDER.indexOf(l.dir), type: (l) => l.type, ext: (l) => ({ 확장: 0, 비확장: 1 }[l.ext] ?? 2), price: (l) => l.price || 0, agents: (l) => l.agents, first: (l) => l.firstSeen, chg: (l) => chg(l) };
   const chg = (l) => { const h = l.priceHistory; return h.length > 1 ? h[h.length - 1][1] - h[0][1] : 0; };
   const g = getters[state.sort.key];
   rows.sort((a, b) => { const x = g(a), y = g(b); return (x > y ? 1 : x < y ? -1 : 0) * (state.sort.asc ? 1 : -1); });
-  const head = [["dong", "동"], ["floor", "층", "num"], ["dir", "향"], ["type", "타입"], ["price", "호가", "num"], ["chg", "호가 변동", "num"], ["agents", "중개사", "num"], ["first", state.tShow === "live" ? "처음 본 날" : "올라온 → 내려간 날"]];
+  const head = [["dong", "동"], ["floor", "층", "num"], ["dir", "향"], ["type", "타입"], ["ext", "확장"], ["price", "호가", "num"], ["chg", "호가 변동", "num"], ["agents", "중개사", "num"], ["first", state.tShow === "live" ? "처음 본 날" : "올라온 → 내려간 날"]];
   const arrow = (k) => state.sort.key === k ? (state.sort.asc ? " ▲" : " ▼") : "";
   document.getElementById("tListings").innerHTML =
     `<thead><tr><th class="no">#</th>${head.map(([k, l, c]) => `<th data-k="${k}" class="${c || ""}">${l}${arrow(k)}</th>`).join("")}</tr></thead><tbody>` +
@@ -859,9 +860,9 @@ function renderListingTable(presentDirs) {
       const c = chg(l);
       const isNew = l.firstSeen !== firstSnap && days(l) <= 7;
       const first = state.tShow === "live" ? `${l.firstSeen.slice(0, 10)} <span class="tag ${isNew ? "new" : ""}">${isNew ? "새 매물" : days(l) + "일째"}</span>` : `${l.firstSeen.slice(0, 10)} → ${l.goneAt.slice(0, 10)}`;
-      return `<tr class="${l.goneAt ? "gone" : ""}"><td class="no">${n + 1}</td><td>${l.dong || "–"}</td><td class="num">${/^\d+$/.test(l.floor) ? l.floor + "층" : l.floor + "층"}</td><td>${DIRS[l.dir] || "–"}</td><td class="type">${PLANS[l.type] ? `<span data-type="${l.type}">${l.type}</span>` : l.type || ""}</td>` +
+      return `<tr class="${l.goneAt ? "gone" : ""}"><td class="no">${n + 1}</td><td>${l.dong || "–"}</td><td class="num">${/^\d+$/.test(l.floor) ? l.floor + "층" : l.floor + "층"}</td><td>${DIRS[l.dir] || "–"}</td><td class="type">${PLANS[l.type] ? `<span data-type="${l.type}">${l.type}</span>` : l.type || ""}</td><td>${l.ext ? `<span class="tag ${l.ext === "확장" ? "" : "new"}">${l.ext}</span>` : `<span style="color:var(--text-muted)">–</span>`}</td>` +
         `<td class="num">${won(l.price)}</td><td class="num ${c > 0 ? "chg-up" : c < 0 ? "chg-down" : ""}">${c ? (c > 0 ? "+" : "−") + won(Math.abs(c)) : "–"}</td><td class="num">${l.agents || "–"}</td><td>${first}</td></tr>`;
-    }).join("") : `<tr><td colspan="9" style="color:var(--text-muted)">해당하는 매물이 없습니다</td></tr>`) + "</tbody>";
+    }).join("") : `<tr><td colspan="10" style="color:var(--text-muted)">해당하는 매물이 없습니다</td></tr>`) + "</tbody>";
 }
 document.getElementById("tListings").addEventListener("click", (e) => {
   const ty = e.target.closest("[data-type]"); if (ty) { showPlan(ty.dataset.type); return; }
