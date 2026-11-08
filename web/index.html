@@ -85,6 +85,13 @@ h1 { font-size: 24px; margin: 0; letter-spacing: -0.02em; }
 }
 .seg button.on { background: var(--surface-1); color: var(--text-primary); font-weight: 700; box-shadow: 0 1px 2px rgba(0,0,0,.12); }
 .flabel { font-size: 13px; color: var(--text-muted); margin-right: 6px; }
+.kpi.go { cursor: pointer; transition: border-color .15s; }
+.kpi.go:hover { border-color: var(--accent); }
+.kpi.go { position: relative; }
+.kpi .more { margin-top: 6px; font-size: 12px; color: var(--accent); text-align: right; }
+.card { scroll-margin-top: 190px; }
+@keyframes flash { 0% { box-shadow: 0 0 0 3px var(--accent); } 100% { box-shadow: 0 0 0 3px transparent; } }
+.card.flash { animation: flash 1.6s ease-out; }
 .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 22px; }
 .kpi { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
 .kpi .k { font-size: 13px; color: var(--text-secondary); }
@@ -124,7 +131,7 @@ td.no, th.no { color: var(--text-muted); text-align: right; width: 1%; cursor: d
 .count { font-size: 13px; font-weight: 400; color: var(--text-muted); margin-left: 6px; }
 .count b { color: var(--text-primary); }
 select.pick { font: inherit; font-size: 14px; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary); }
-#listingCard, #listingH2 { scroll-margin-top: 130px; }
+#listingCard, #listingH2 { scroll-margin-top: 190px; }
 #tDong tbody tr { cursor: pointer; }
 #tDong tbody tr:hover td { background: var(--chip); }
 #tDong tr.sel td { background: var(--chip); font-weight: 700; }
@@ -175,7 +182,7 @@ button.pick { cursor: pointer; }
 .tag.yes { background: var(--series-3); color: #fff; }
 .tag.mid { background: var(--series-4); color: #fff; }
 td.type span { border-bottom: 1px dashed var(--text-muted); cursor: pointer; }
-#planCard { scroll-margin-top: 130px; }
+#planCard { scroll-margin-top: 190px; }
 .bar { display: inline-block; height: 8px; border-radius: 4px; background: var(--accent); vertical-align: middle; margin-right: 8px; opacity: .75; }
 .chg-up { color: var(--up); } .chg-down { color: var(--down); }
 footer { margin-top: 36px; font-size: 12px; color: var(--text-muted); line-height: 1.7; }
@@ -633,13 +640,13 @@ function renderRelation(startStr) {
     judge = r > 1.15 ? "평소보다 매물이 쌓이는 중" : r < 0.85 ? "평소보다 빨리 팔리는 중" : "평소 수준";
   }
   const tiles = [
-    ["33평 매물 소진 기간", fmt(live33 / a33, "개월"), `매물 ${live33}채 ÷ 월 ${a33 == null ? "–" : a33.toFixed(1)}건`],
-    ["33평 월 회전율", a33 ? fmt(a33 / live33 * 100, "%") : "–", "한 달에 매물 중 거래되는 비율"],
-    ["단지 전체 소진 기간", fmt(supNowAll, "개월"), `매물 ${asilNow ?? "–"}건 ÷ 월 ${aAll == null ? "–" : aAll.toFixed(1)}건`],
-    ["단지 전체 월 회전율", aAll && asilNow ? fmt(aAll / asilNow * 100, "%") : "–", "모든 평형 합계"],
-    ["단지 흐름", judge || "–", histAvg ? `선택 기간 평균 ${histAvg.toFixed(1)}개월 대비` : ""],
+    ["33평 매물 소진 기간", fmt(live33 / a33, "개월"), `매물 ${live33}채 ÷ 월 ${a33 == null ? "–" : a33.toFixed(1)}건`, "#c-sup33"],
+    ["33평 월 회전율", a33 ? fmt(a33 / live33 * 100, "%") : "–", "한 달에 매물 중 거래되는 비율", "#c-sup33"],
+    ["단지 전체 소진 기간", fmt(supNowAll, "개월"), `매물 ${asilNow ?? "–"}건 ÷ 월 ${aAll == null ? "–" : aAll.toFixed(1)}건`, "#c-supAll"],
+    ["단지 전체 월 회전율", aAll && asilNow ? fmt(aAll / asilNow * 100, "%") : "–", "모든 평형 합계", "#c-supAll"],
+    ["단지 흐름", judge || "–", histAvg ? `선택 기간 평균 ${histAvg.toFixed(1)}개월 대비` : "", "#c-supAll"],
   ];
-  document.getElementById("relKpis").innerHTML = tiles.map(([k, v, n]) => `<div class="kpi"><div class="k">${k}</div><div class="v">${v}</div><div class="n">${n}</div></div>`).join("");
+  document.getElementById("relKpis").innerHTML = tiles.map(kpiHtml).join("");
 }
 
 function renderKpis(trades, startStr) {
@@ -652,14 +659,14 @@ function renderKpis(trades, startStr) {
   const goneCnt = LL.filter((l) => l.goneAt && l.goneAt.slice(0, 10) >= startStr).length;
   const recent = D.trades.filter((t) => !t.cancel).slice(-1)[0];
   const tiles = [
-    [one ? "고른 조건 지금 매물" : "지금 매물", `${live.length}채`, `중개사 등록 ${one ? live.reduce((s, l) => s + (l.agents || 0), 0) : last?.items ?? "–"}건`],
-    ["평균 호가", won(avg(prices)), `최저 ${won(Math.min(...prices))}`],
-    [one ? "기간 실거래 (33평 전체)" : "기간 실거래", `${trades.length}건`, `평균 ${won(tAvg)}`],
-    ["호가 − 실거래 평균", tAvg && prices.length ? won(avg(prices) - tAvg) : "–", one ? "고른 조건 호가 − 33평 전체 실거래" : "선택 기간 실거래 평균 대비"],
-    ["기간 신규 / 내려감", `${newCnt} / ${goneCnt}`, "수집 시작 이후 기준"],
-    [one ? "가장 최근 실거래 (33평 전체)" : "가장 최근 실거래", recent ? won(recent.price) : "–", recent ? `${recent.date} · ${recent.floor}층` : ""],
+    [one ? "고른 조건 지금 매물" : "지금 매물", `${live.length}채`, `중개사 등록 ${one ? live.reduce((s, l) => s + (l.agents || 0), 0) : last?.items ?? "–"}건`, "#listingCard"],
+    ["평균 호가", won(avg(prices)), `최저 ${won(Math.min(...prices))}`, "#listingCard", "price"],
+    [one ? "기간 실거래 (33평 전체)" : "기간 실거래", `${trades.length}건`, `평균 ${won(tAvg)}`, "#c-vol"],
+    ["호가 − 실거래 평균", tAvg && prices.length ? won(avg(prices) - tAvg) : "–", one ? "고른 조건 호가 − 33평 전체 실거래" : "선택 기간 실거래 평균 대비", "#c-tPrice"],
+    ["기간 신규 / 내려감", `${newCnt} / ${goneCnt}`, "수집 시작 이후 기준", "#c-flow"],
+    [one ? "가장 최근 실거래 (33평 전체)" : "가장 최근 실거래", recent ? won(recent.price) : "–", recent ? `${recent.date} · ${recent.floor}층` : "", "#tTrades"],
   ];
-  document.getElementById("kpis").innerHTML = tiles.map(([k, v, n]) => `<div class="kpi"><div class="k">${k}</div><div class="v">${v}</div><div class="n">${n}</div></div>`).join("");
+  document.getElementById("kpis").innerHTML = tiles.map(kpiHtml).join("");
 }
 
 function renderTradesTable(trades) {
@@ -822,6 +829,22 @@ document.getElementById("tDong").addEventListener("click", (e) => {
 });
 
 // 여러 개 고르기: '전체'를 누르면 비우고, 나머지는 켜고 끄기
+// 숫자 칸: 누르면 아래 자세한 내용으로 스크롤
+const kpiHtml = ([k, v, n, go, sort]) => `<div class="kpi${go ? " go" : ""}"${go ? ` data-go="${go}"${sort ? ` data-sort="${sort}"` : ""} role="button" tabindex="0"` : ""}><div class="k">${k}</div><div class="v">${v}</div><div class="n">${n}</div>${go ? `<div class="more">자세히 보기 ›</div>` : ""}</div>`;
+function goTo(sel, sort) {
+  if (sort) { state.sort = { key: sort, asc: true }; renderListingTable(); }
+  const el = document.querySelector(sel); if (!el) return;
+  const card = el.closest(".card") || el;
+  card.scrollIntoView({ behavior: "smooth", block: "start" });
+  card.classList.remove("flash"); void card.offsetWidth; card.classList.add("flash");
+}
+["kpis", "relKpis"].forEach((id) => {
+  const el = document.getElementById(id);
+  const go = (e) => { const t = e.target.closest(".kpi.go"); if (t) goTo(t.dataset.go, t.dataset.sort); };
+  el.addEventListener("click", go);
+  el.addEventListener("keydown", (e) => { if (e.key === "Enter") go(e); });
+});
+
 function chipGroup(id, items, key, after = renderListingTable) {
   const el = document.getElementById(id);
   const sel = state[key];
