@@ -248,7 +248,7 @@ footer a { color: var(--text-secondary); }
 
   <div class="card tablecard" id="planCard">
     <h3>타입별 평면도</h3>
-    <p class="note">평수는 공급면적 ÷ 3.3058 · 그림을 누르면 큰 그림 · 매물 표의 타입을 눌러도 여기로 옵니다 · 맞통풍은 거실 큰 창 맞은편에 막힘없이 창이 있는지를 평면도로 본 것이며, 확장·구조 변경은 집마다 다를 수 있습니다</p>
+    <p class="note">33평형은 네이버 부동산 평면도로 구조를 다시 확인했고, 다른 평형은 호갱노노 그림만 보고 판단한 것입니다 · 평수는 공급면적 ÷ 3.3058 · 그림을 누르면 큰 그림 · 매물 표의 타입을 눌러도 여기로 옵니다 · 맞통풍은 거실 큰 창 맞은편에 막힘없이 창이 있는지를 평면도로 본 것이며, 확장·구조 변경은 집마다 다를 수 있습니다</p>
     <div class="tools"><div><span class="flabel">33평형</span><div class="seg" id="planSeg"></div></div></div>
     <div class="tools"><div><span class="flabel">다른 평형</span><div class="seg" id="planSeg2"></div></div></div>
     <div id="planBody"></div>
@@ -656,24 +656,27 @@ function renderTradesTable(trades) {
 }
 
 // ---------- 타입별 평면도 ----------
-// 호갱노노 단지 정보의 평형별 평면도. vent: 거실 큰 창과 반대편 창이 막힘없이 마주 보는지 — 평면도를 보고 적은 것 (막힘없는 직통 타입은 없음)
+// 호갱노노 단지 정보의 평형별 평면도. vent: 거실 큰 창과 반대편 창이 막힘없이 마주 보는지 — 평면도를 보고 적은 것
+const NAVER_PLANS = "https://fin.land.naver.com/complexes/109359/photos?albumTab=floor-plan";
 const PLAN_IMG = "https://image.hogangnono.com/image/original/apt/aNmbc/";
 const PLANS = {
   // ---- 33평형 (전용 84㎡대) : 시세판이 매물·실거래를 모으는 타입 ----
-  "110C": { img: "106777/20210508043412_HhPSidW14V465sMxuW", supply: 110.14, priv: 84.98, hh: 511, main: true, form: "판상형 (거실 앞 · 주방 뒤)", vent: "mid",
-    ventText: "<b>직통 맞통풍은 아님.</b> 거실 큰 창 맞은편은 주방 싱크대 벽입니다. 뒤쪽 창은 옆으로 비켜 있는 다용도실에 있어 다용도실 문을 거쳐야 합니다. 33평형 중에서는 앞뒤로 바람이 통하는 데 가장 가깝습니다." },
-  "113A": { img: "106775/20210508043411_phglGLrW6s02R7sop8", supply: 113.79, priv: 84.95, hh: 627, main: true, form: "타워형 (거실 · 주방이 양옆)", vent: "mid",
-    ventText: "<b>직통 맞통풍은 아님.</b> 거실 큰 창 맞은편은 주방 벽입니다. 반대쪽 창은 주방 안쪽 다용도실에 있어, 카운터 사이 통로를 지나 꺾여 들어가야 합니다." },
-  "112D": { img: "106778/20210508043413_FqetAugaHPZOnqhNEN", supply: 112.23, priv: 84.95, hh: 116, main: true, form: "타워형 (모서리)", vent: "no",
-    ventText: "<b>맞통풍 없음.</b> 거실 창은 옆면, 주방 다용도실 창은 뒷면이라 서로 직각(ㄱ자)입니다. 거실 맞은편은 방 문과 벽입니다." },
-  "113B": { img: "106776/20190725001654_H00bqankHRtj5Mu0WW", supply: 113.6, priv: 84.98, hh: 178, main: true, form: "타워형 (모서리, 발코니 두 면)", vent: "no",
-    ventText: "<b>맞통풍 없음.</b> 거실 창(앞)과 주방 창(옆)이 직각입니다. 거실 맞은편은 현관·욕실 쪽이라 창이 없습니다." },
+  // 구조·맞통풍은 네이버 부동산 평면도(분양 도면 기준)로 다시 확인한 것. naver: 네이버에서 쓰는 이름.
+  // 호갱노노는 110C와 113A 평면도 그림이 서로 바뀌어 올라가 있어(네이버 도면·동 모양과 비교) 여기서는 바로잡아 붙인다.
+  "110C": { img: "106775/20210508043411_phglGLrW6s02R7sop8", naver: "33F", supply: 110.14, priv: 84.98, hh: 511, main: true, form: "타워형 (거실 창이 옆면)", vent: "no",
+    ventText: "<b>맞통풍 없음.</b> 거실 큰 창 맞은편은 방으로 이어지는 복도와 방 문입니다. 주방 창은 거실 창과 직각입니다. (네이버 33F 평면도 기준 · 33D와 같은 그림이라 실제 집에서 한 번 더 확인 권장)" },
+  "113A": { img: "106777/20210508043412_HhPSidW14V465sMxuW", naver: "34A", supply: 113.79, priv: 84.95, hh: 627, main: true, form: "판상형 (거실 앞 · 주방 뒤)", vent: "yes",
+    ventText: "<b>맞통풍 됨 — 33평형 중 유일.</b> 거실 큰 창 바로 맞은편이 주방·식당이고, 주방 뒤쪽 벽에 창이 있어 앞뒤로 일직선으로 뚫려 있습니다. 사이에 벽이나 문이 없습니다. 기본형은 주방 창 밖이 뒤 발코니, 확장형은 주방 창이 바로 바깥입니다." },
+  "112D": { img: "106778/20210508043413_FqetAugaHPZOnqhNEN", naver: "33D", supply: 112.23, priv: 84.95, hh: 116, main: true, form: "타워형 (모서리)", vent: "no",
+    ventText: "<b>맞통풍 없음.</b> 거실 큰 창 맞은편은 왼쪽 방으로 가는 긴 복도와 방 문입니다. 주방 창은 거실 창과 직각(ㄱ자)입니다." },
+  "113B": { img: "106776/20190725001654_H00bqankHRtj5Mu0WW", naver: "34B", supply: 113.6, priv: 84.98, hh: 178, main: true, form: "타워형 (모서리, 발코니 두 면)", vent: "no",
+    ventText: "<b>맞통풍 없음.</b> 거실 큰 창 맞은편은 현관으로 이어지는 복도입니다. 주방 창은 옆면이라 거실 창과 직각입니다." },
   // ---- 다른 평형 : 평면도만 (매물·시세는 모으지 않음) ----
   "58": { img: null, supply: 58.23, priv: 39.7, hh: 138, form: "–", vent: null, ventText: "호갱노노에 평면도가 없습니다." },
   "74": { img: "258649/20260210163906_HOAR6NZkoApKJDeikd", supply: 74.42, priv: 49.31, hh: 130, form: "판상형 (거실 · 주방 한 줄)", vent: "mid",
-    ventText: "<b>단지에서 직통에 가장 가까움.</b> 거실 창과 반대쪽 끝 다용도실 창이 같은 높이에서 일직선으로 마주 봅니다. 사이는 거실·식당·주방이 한 공간이고 다용도실 문 하나만 있습니다." },
+    ventText: "<b>직통에 가까움 (문 하나).</b> 거실 창과 반대쪽 끝 다용도실 창이 같은 높이에서 일직선으로 마주 봅니다. 사이는 거실·식당·주방이 한 공간이고 다용도실 문 하나만 있습니다." },
   "83A": { img: "106771/20210508043408_Q1D6vQgAWqU7CANtxe", supply: 83.93, priv: 59.94, hh: 294, form: "타워형", vent: "mid",
-    ventText: "<b>직통 맞통풍은 아님.</b> 거실 창 반대쪽 주방 옆 다용도실에 창이 있지만, 아일랜드 카운터를 지나 살짝 꺾여 들어갑니다 (113A와 비슷)." },
+    ventText: "<b>직통 맞통풍은 아님.</b> 거실 창 반대쪽 주방 옆 다용도실에 창이 있지만, 아일랜드 카운터를 지나 살짝 꺾여 들어갑니다." },
   "84B": { img: "106772/20210508043409_AtfHSszRojL8wETE7u", supply: 84.21, priv: 59.96, hh: 78, form: "판상형 (방이 한쪽으로 길게)", vent: "no",
     ventText: "<b>맞통풍 없음.</b> 거실 창 반대쪽은 복도와 방 문입니다. 주방 창은 거실 창과 직각입니다." },
   "84C": { img: "106773/20210508043410_RMIhAfRUU9yFLnIW36", supply: 84.06, priv: 59.99, hh: 87, form: "판상형 (방이 한쪽으로 길게)", vent: "no",
@@ -681,7 +684,7 @@ const PLANS = {
   "85D": { img: "106774/20210508043411_tEVfDiwtyTq2FNviYH", supply: 85.05, priv: 59.94, hh: 57, form: "판상형 (방이 한쪽으로 길게)", vent: "no",
     ventText: "<b>맞통풍 없음.</b> 거실 창 반대쪽은 복도 끝 방 문입니다. 주방 창은 거실 창과 직각입니다." },
   "130B": { img: "106779/20210508043414_7YZUwk6ZiQxUMuqT1h", supply: 130.63, priv: 100.95, hh: 465, form: "판상형 (거실 앞 · 주방 뒤)", vent: "mid",
-    ventText: "<b>직통 맞통풍은 아님.</b> 110C와 비슷하게 거실 앞 창 맞은편이 주방 싱크대 벽이고, 뒤쪽 창은 옆 다용도실에 문을 거쳐 있습니다." },
+    ventText: "<b>직통 맞통풍은 아님.</b> 거실 앞 창 맞은편이 주방 싱크대 벽이고, 뒤쪽 창은 옆 다용도실에 문을 거쳐 있습니다." },
   "153A": { img: "106780/20210508043415_jbdzzgxUcbyT2y3SkY", supply: 153.21, priv: 121.97, hh: 108, form: "판상형 (방이 한쪽으로 길게)", vent: "no",
     ventText: "<b>맞통풍 없음.</b> 거실 창 반대쪽은 복도와 방 문들입니다. 주방 창은 거실 창과 직각입니다." },
   "154B": { img: "106781/20210508043416_QXwcsO0GpOhBA5Jz2l", supply: 154.72, priv: 121.97, hh: 128, form: "판상형 (방이 한쪽으로 길게)", vent: "no",
@@ -704,9 +707,10 @@ function renderPlan() {
   const [cls, txt] = VENT_TAG[P.vent] || ["", ""];
   document.getElementById("planBody").innerHTML = `<div class="plan">
     <div>${url ? `<a href="${url}" target="_blank" rel="noopener noreferrer"><img src="${url}?s=720x180&t=outside&q=100" alt="${planType} 평면도" loading="lazy" referrerpolicy="no-referrer"></a>` : `<div class="vent" style="margin:0">평면도 그림이 없습니다</div>`}
-      <div class="src">평면도 출처: <a href="https://hogangnono.com/apt/aNmbc" target="_blank" rel="noopener">호갱노노 · 대연롯데캐슬레전드</a></div></div>
+      <div class="src">평면도 그림: <a href="https://hogangnono.com/apt/aNmbc" target="_blank" rel="noopener">호갱노노</a>${P.naver ? ` · 구조·맞통풍 확인: <a href="${NAVER_PLANS}" target="_blank" rel="noopener">네이버 부동산 평면도 (${P.naver}평)</a>` : ""}</div></div>
     <div><dl>
       <dt>타입</dt><dd><b>${planType}</b>${P.vent ? ` <span class="tag ${cls}">${txt}</span>` : ""}</dd>
+      ${P.naver ? `<dt>네이버 이름</dt><dd>${P.naver}평 (기본형·확장A형)</dd>` : ""}
       <dt>평수</dt><dd><b>${pyeong(P.supply)}</b> (공급 ${P.supply}㎡ · 전용 ${P.priv}㎡ = ${pyeong(P.priv)})</dd>
       <dt>구조</dt><dd>${P.form}</dd>
       <dt>세대수</dt><dd>${P.hh}세대</dd>
