@@ -128,6 +128,19 @@ tr.gone td { color: var(--text-muted); text-decoration: line-through; }
 .tag { display: inline-block; font-size: 12px; padding: 1px 7px; border-radius: 10px; background: var(--chip); color: var(--text-secondary); }
 .tag.new { background: var(--accent); color: #fff; }
 td.no, th.no { color: var(--text-muted); text-align: right; width: 1%; cursor: default; }
+.rtform { display: flex; flex-direction: column; gap: 8px; margin: 8px 0 12px; }
+.rtrow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.rtrow .flabel { min-width: 30px; }
+.rtdates { display: inline-flex; align-items: center; gap: 4px; font-size: 14px; color: var(--text-secondary); flex-wrap: wrap; }
+.rtdates input { font: inherit; font-size: 14px; color: var(--text-primary); background: var(--surface-1); border: 1px solid var(--border); border-radius: 6px; padding: 4px 6px; }
+.rtdates input[type=number] { width: 76px; }
+.rtsum { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin-bottom: 12px; }
+.rtsum > div { background: var(--bg); border-radius: 8px; padding: 8px 10px; }
+.rtsum .k { font-size: 12px; color: var(--text-secondary); }
+.rtsum .v { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.rtsum .n { font-size: 11px; color: var(--text-muted); }
+.rtsum > .main { background: var(--chip); }
+.rtsum .main .v { color: var(--accent); }
 .count { font-size: 13px; font-weight: 400; color: var(--text-muted); margin-left: 6px; }
 .count b { color: var(--text-primary); }
 select.pick { font: inherit; font-size: 14px; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface-1); color: var(--text-primary); }
@@ -284,8 +297,33 @@ footer a { color: var(--text-secondary); }
   <div class="grid">
     <div class="card"><h3>거래량</h3><p class="note">기간마다 계약된 건수</p><div class="legend" id="lg-vol"></div><div class="chartbox"><canvas id="c-vol"></canvas></div></div>
     <div class="card"><h3>평균 실거래가</h3><p class="note">전체 평균과 층별 평균</p><div class="legend" id="lg-tPrice"></div><div class="chartbox"><canvas id="c-tPrice"></canvas></div></div>
-    <div class="card"><h3>층별 거래량</h3><p class="note">저층 1~10 · 중층 11~22 · 고층 23층 이상</p><div class="legend" id="lg-tBandVol"></div><div class="chartbox"><canvas id="c-tBandVol"></canvas></div></div>
-    <div class="card"><h3>최근 실거래<span class="count" id="tradeCount"></span></h3><p class="note">선택한 기간 안의 거래 · 최근 것부터</p><div class="tscroll" style="max-height:250px"><table id="tTrades"></table></div></div>
+    <div class="card" style="grid-column:1/-1"><h3>층별 거래량</h3><p class="note">저층 1~10 · 중층 11~22 · 고층 23층 이상</p><div class="legend" id="lg-tBandVol"></div><div class="chartbox"><canvas id="c-tBandVol"></canvas></div></div>
+  </div>
+
+  <div class="card tablecard" id="tradeCard">
+    <h3>실거래 찾아보기<span class="count" id="tradeCount"></span></h3>
+    <p class="note">조건을 고르면 맞는 거래만 모아 평균 가격을 보여 줍니다 · 이 카드의 조건은 위 그래프와 따로 움직입니다 · 머리줄을 누르면 정렬</p>
+    <div class="rtform">
+      <div class="rtrow"><span class="flabel">기간</span>
+        <div class="seg" id="rtQuick">
+          <button data-d="top" class="on">위 기간 따름</button><button data-d="30">1개월</button><button data-d="90">3개월</button><button data-d="180">6개월</button><button data-d="365">1년</button><button data-d="1095">3년</button><button data-d="all">전체</button>
+        </div>
+        <span class="rtdates"><input type="date" id="rtFrom" aria-label="시작일"> ~ <input type="date" id="rtTo" aria-label="종료일"></span>
+      </div>
+      <div class="rtrow"><span class="flabel">타입</span>
+        <div class="seg" id="rtGrp"><button data-v="all" class="on">33평 전체</button><button data-v="110C">110C</button><button data-v="113A·112D·113B">113A·112D·113B</button></div>
+      </div>
+      <div class="rtrow"><span class="flabel">층</span>
+        <div class="seg" id="rtBand"><button data-v="저층">저층</button><button data-v="중층">중층</button><button data-v="고층">고층</button></div>
+        <span class="rtdates"><input type="number" id="rtFMin" min="1" max="40" placeholder="최저" aria-label="최저 층">층 ~ <input type="number" id="rtFMax" min="1" max="40" placeholder="최고" aria-label="최고 층">층</span>
+      </div>
+      <div class="rtrow"><span class="flabel">가격</span>
+        <span class="rtdates"><input type="number" id="rtPMin" step="0.1" min="0" placeholder="예: 7.5" aria-label="최저 가격(억)">억 ~ <input type="number" id="rtPMax" step="0.1" min="0" placeholder="예: 8.5" aria-label="최고 가격(억)">억</span>
+        <button class="pick" id="rtReset">조건 모두 풀기</button>
+      </div>
+    </div>
+    <div class="rtsum" id="rtSum"></div>
+    <div class="tscroll" style="max-height:420px"><table id="tTrades"></table></div>
   </div>
 
   <h2>매물과 거래의 관계</h2>
@@ -577,7 +615,8 @@ function render() {
 
   renderRelation(startStr);
   renderKpis(trades, startStr);
-  renderTradesTable(trades);
+  rtTopStart = startStr;
+  renderTradeSearch();
   renderDongTable(startStr);
   renderListingTable(presentDirs);
   renderPlan();
@@ -673,14 +712,101 @@ function renderKpis(trades, startStr) {
   document.getElementById("kpis").innerHTML = tiles.map(kpiHtml).join("");
 }
 
-function renderTradesTable(trades) {
-  const rows = trades.slice().reverse();
-  document.getElementById("tradeCount").innerHTML = `총 <b>${rows.length}</b>건`;
-  document.getElementById("tTrades").innerHTML =
-    `<thead><tr><th class="no">#</th><th>계약일</th><th>타입</th><th class="num">층</th><th>구분</th><th class="num">가격</th></tr></thead><tbody>` +
-    (rows.length ? rows.map((t, i) => `<tr><td class="no">${i + 1}</td><td>${t.date}</td><td>${(t.grp || "110C") === "110C" ? "110C" : "113A·B·112D"}</td><td class="num">${t.floor ?? "–"}</td><td>${t.band}</td><td class="num">${won(t.price)}</td></tr>`).join("")
-      : `<tr><td colspan="6" style="color:var(--text-muted)">이 기간에는 거래가 없습니다</td></tr>`) + "</tbody>";
+// ---------- 실거래 찾아보기 (자체 조건) ----------
+const rt = { quick: "top", from: "", to: "", grp: "all", bands: [], fMin: "", fMax: "", pMin: "", pMax: "", sort: { key: "date", asc: false } };
+let rtTopStart = "";
+const $ = (id) => document.getElementById(id);
+function rtRange() {
+  const today = ymd(new Date());
+  let from = rt.from, to = rt.to || today;
+  if (!from) {
+    if (rt.quick === "top") from = rtTopStart;
+    else if (rt.quick === "all") from = D.trades[0]?.date || today;
+    else { const s = new Date(); s.setDate(s.getDate() - +rt.quick + 1); from = ymd(s); }
+  }
+  return [from, to];
 }
+function rtPass(t, from, to) {
+  if (t.cancel || t.date < from || t.date > to) return false;
+  if (rt.grp !== "all" && (t.grp || "110C") !== rt.grp) return false;
+  if (rt.bands.length && !rt.bands.includes(t.band)) return false;
+  const f = +t.floor;
+  if (rt.fMin !== "" && !(f >= +rt.fMin)) return false;
+  if (rt.fMax !== "" && !(f <= +rt.fMax)) return false;
+  if (rt.pMin !== "" && t.price < +rt.pMin * 10000) return false;
+  if (rt.pMax !== "" && t.price > +rt.pMax * 10000) return false;
+  return true;
+}
+function median(a) { if (!a.length) return null; const s = a.slice().sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; }
+function renderTradeSearch() {
+  if (!D) return;
+  const [from, to] = rtRange();
+  $("rtFrom").value = from; $("rtTo").value = to;
+  const rows = D.trades.filter((t) => rtPass(t, from, to));
+  const prices = rows.map((t) => t.price);
+  // 직전 같은 길이 기간과 비교
+  const len = Math.round((parseDay(to) - parseDay(from)) / 864e5) + 1;
+  const pTo = new Date(parseDay(from)); pTo.setDate(pTo.getDate() - 1);
+  const pFrom = new Date(pTo); pFrom.setDate(pFrom.getDate() - len + 1);
+  const prev = D.trades.filter((t) => rtPass(t, ymd(pFrom), ymd(pTo))).map((t) => t.price);
+  const a = avg(prices), pa = avg(prev);
+  const diff = a != null && pa != null ? a - pa : null;
+  const diffTxt = diff == null ? "비교할 거래 없음"
+    : `<span class="${diff > 0 ? "chg-up" : diff < 0 ? "chg-down" : ""}">${diff > 0 ? "+" : ""}${(diff / pa * 100).toFixed(1)}%</span> · 직전 ${prev.length}건 평균 ${won(pa)}`;
+  const floors = rows.map((t) => +t.floor).filter((f) => f > 0);
+  const tile = (k, v, n, cls = "") => `<div class="${cls}"><div class="k">${k}</div><div class="v">${v}</div><div class="n">${n}</div></div>`;
+  $("rtSum").innerHTML = [
+    tile("평균 거래가", won(a), `${rows.length}건 · ${from.replace(/-/g, ".")} ~ ${to.replace(/-/g, ".")}`, "main"),
+    tile("중앙값", won(median(prices)), "가운데 순서의 가격"),
+    tile("최저 / 최고", prices.length ? `${won(Math.min(...prices))}` : "–", prices.length ? `최고 ${won(Math.max(...prices))}` : ""),
+    tile("직전 같은 기간 대비", diff == null ? "–" : `${diff > 0 ? "+" : diff < 0 ? "−" : ""}${won(Math.abs(diff))}`, diffTxt),
+    tile("평균 층", floors.length ? `${(floors.reduce((s, f) => s + f, 0) / floors.length).toFixed(1)}층` : "–", "고른 거래의 평균"),
+  ].join("");
+  $("tradeCount").innerHTML = `총 <b>${rows.length}</b>건`;
+
+  const getters = { date: (t) => t.date, grp: (t) => t.grp || "110C", floor: (t) => +t.floor || 0, band: (t) => BANDS.indexOf(t.band), price: (t) => t.price, gap: (t) => t.price - (a || 0) };
+  const g = getters[rt.sort.key];
+  rows.sort((x, y) => { const p = g(x), q = g(y); return (p > q ? 1 : p < q ? -1 : 0) * (rt.sort.asc ? 1 : -1); });
+  const head = [["date", "계약일"], ["grp", "타입"], ["floor", "층", "num"], ["band", "구분"], ["price", "가격", "num"], ["gap", "평균과 차이", "num"]];
+  const arrow = (k) => rt.sort.key === k ? (rt.sort.asc ? " ▲" : " ▼") : "";
+  $("tTrades").innerHTML =
+    `<thead><tr><th class="no">#</th>${head.map(([k, l, c]) => `<th data-k="${k}" class="${c || ""}">${l}${arrow(k)}</th>`).join("")}</tr></thead><tbody>` +
+    (rows.length ? rows.map((t, i) => {
+      const d = t.price - a;
+      return `<tr><td class="no">${i + 1}</td><td>${t.date}</td><td>${(t.grp || "110C") === "110C" ? "110C" : "113A·B·112D"}</td><td class="num">${t.floor ?? "–"}</td><td>${t.band}</td><td class="num">${won(t.price)}</td>` +
+        `<td class="num ${d > 0 ? "chg-up" : d < 0 ? "chg-down" : ""}">${Math.round(d) ? (d > 0 ? "+" : "−") + won(Math.abs(d)) : "–"}</td></tr>`;
+    }).join("") : `<tr><td colspan="7" style="color:var(--text-muted)">조건에 맞는 거래가 없습니다</td></tr>`) + "</tbody>";
+}
+(function bindTradeSearch() {
+  const onSeg = (id, fn) => $(id).addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) { fn(b); renderTradeSearch(); } });
+  onSeg("rtQuick", (b) => {
+    rt.quick = b.dataset.d; rt.from = ""; rt.to = "";
+    document.querySelectorAll("#rtQuick button").forEach((x) => x.classList.toggle("on", x === b));
+  });
+  onSeg("rtGrp", (b) => { rt.grp = b.dataset.v; document.querySelectorAll("#rtGrp button").forEach((x) => x.classList.toggle("on", x === b)); });
+  onSeg("rtBand", (b) => {
+    const v = b.dataset.v; rt.bands = rt.bands.includes(v) ? rt.bands.filter((x) => x !== v) : [...rt.bands, v];
+    b.classList.toggle("on", rt.bands.includes(v));
+  });
+  const dateIn = () => { rt.from = $("rtFrom").value; rt.to = $("rtTo").value; document.querySelectorAll("#rtQuick button").forEach((x) => x.classList.remove("on")); renderTradeSearch(); };
+  $("rtFrom").addEventListener("change", dateIn);
+  $("rtTo").addEventListener("change", dateIn);
+  [["rtFMin", "fMin"], ["rtFMax", "fMax"], ["rtPMin", "pMin"], ["rtPMax", "pMax"]].forEach(([id, k]) =>
+    $(id).addEventListener("input", () => { rt[k] = $(id).value.trim(); renderTradeSearch(); }));
+  $("rtReset").addEventListener("click", () => {
+    Object.assign(rt, { quick: "top", from: "", to: "", grp: "all", bands: [], fMin: "", fMax: "", pMin: "", pMax: "" });
+    ["rtFMin", "rtFMax", "rtPMin", "rtPMax"].forEach((id) => { $(id).value = ""; });
+    document.querySelectorAll("#rtQuick button").forEach((x) => x.classList.toggle("on", x.dataset.d === "top"));
+    document.querySelectorAll("#rtGrp button").forEach((x) => x.classList.toggle("on", x.dataset.v === "all"));
+    document.querySelectorAll("#rtBand button").forEach((x) => x.classList.remove("on"));
+    renderTradeSearch();
+  });
+  $("tTrades").addEventListener("click", (e) => {
+    const th = e.target.closest("th[data-k]"); if (!th) return;
+    const k = th.dataset.k; rt.sort = { key: k, asc: rt.sort.key === k ? !rt.sort.asc : k !== "date" && k !== "price" ? true : false };
+    renderTradeSearch();
+  });
+})();
 
 // ---------- 타입별 평면도 ----------
 // 호갱노노 단지 정보의 평형별 평면도. vent: 거실 큰 창과 반대편 창이 막힘없이 마주 보는지 — 평면도를 보고 적은 것
